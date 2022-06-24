@@ -49,7 +49,6 @@ To https://github.com/shagyeong/USP
 Branch 'master' set up to track remote branch 'master' from 'origin'.
 
 
-
 shagyeong@ubuntu:~/usp2022$ git add .
 shagyeong@ubuntu:~/usp2022$ git commit -m "first commit"
 shagyeong@ubuntu:~/usp2022$ git push -u origin master
