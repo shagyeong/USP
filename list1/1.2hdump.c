@@ -1,7 +1,7 @@
-/*
-
-
-
+/*1
+2
+3
+4
 
 
 
@@ -10,7 +10,7 @@
 
 
 */
-
+/*
 #include<stdio.h>
 #include<stdlib.h>
 
@@ -46,9 +46,9 @@ void main(int argc, char* argv[]){
     exit(0);
 }
 
-/*
 
-*/
+
+
 void hexdump(void){
 
     int fdin;
@@ -78,10 +78,11 @@ void hexdump(void){
     }
 }
 
-/*
 
-*/
+
+
 void usage(void){
     fprintf(stderr, "Usage : %s file...\n", command_name);
     exit(1);
 }
+*/
