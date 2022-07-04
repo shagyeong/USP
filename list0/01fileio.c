@@ -18,7 +18,12 @@ int main(int argc, char* argv[]){
 
     int count = read(fd1, buffer, BUFFERSIZE);
     
-    printf("!!%d", count);
+    printf("%c ", buffer[0]);
+    printf("%c ", buffer[1]);
+    printf("%c ", buffer[2]);
+    printf("%c ", buffer[3]);
+    
+    //printf("!!%d", count);
 
     fclose(fp1);
     fclose(fp2);

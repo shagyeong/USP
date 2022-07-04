@@ -1,3 +1,55 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<unistd.h>
+
+#define BUFFERSIZE 16
+#define ERR -1
+
+void hexdump(FILE* fp);
+
+void main(int argc, char* argv[]){
+    FILE* fp1 = fopen(argv[1], "r");
+
+    hexdump(fp1);
+
+    exit(0);
+}
+
+void hexdump(FILE* fp){
+    int fd; //파일 디스크립터
+    unsigned int address; //바이트 수(주소)
+    int count; //읽어들일 바이트 수
+    unsigned char buffer[BUFFERSIZE]; //버퍼
+
+    fd = fileno(fp);
+    address = 0;
+    count = read(fd, buffer, BUFFERSIZE);
+
+    while(count > 0){
+        printf("%08x", address);
+
+        for(int i = 0; i < count; i++){
+            printf(" %02x", buffer[i]);
+        }
+
+        printf(" ");
+
+        for(int i = 0; i < count; i++){
+            printf("%c", buffer[i]);
+        }
+
+        printf("\n");
+
+
+        //반복문 증감식
+        count = read(fd, buffer, BUFFERSIZE);
+        address += count;
+    }
+
+
+    
+}
+
 /*1
 2
 3
