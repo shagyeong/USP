@@ -14,7 +14,7 @@
 13 : while 1
 14 : while 2
 15 : while 3
-16 : break, continue, exit, return
+16 : break, continue, exit
 17 : 사용자 정의 함수
 18 : 함수의 파라미터 사용
 19 : eval
