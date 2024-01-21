@@ -615,7 +615,7 @@ extern int optind, opterr, optopt;
 	* 모든 옵션 앞에 구획 문자 '-'이 선행해야 한다.
 * Guideline 5
 	* One or more options without option-arguments, followed by at most one option that takes an option-argument, should be accepted when grouped behind one '-' delimiter.
-	* 한 개 이상의 인자 없는 옵션들과, 인자를 취하는 최대 한개의 옵션(가장 오른쪽에 위치)를 하나의 구획 문자 '-'로 묶이는 것을 허용한다.
+	* 한 개 이상의 인자 없는 옵션들과, 인자를 취하는 최대 한개의 옵션(가장 오른쪽에 위치)를 하나의 구획 문자 '-'로 묶는 것을 허용한다.
 	* (인자가 없는 옵션은 하나의 구획문자 '-' 다음에 묶여서 올 수 있다.(마지막 한 개는 인자가 있을 수 있음))
 	* 예시 : util -abcdefg에서 a~f는 반드시 인자를 취하지 않으며 마지막 1개의 옵션인 g는 인자를 취할 수도 있음
 * Guideline 6
@@ -627,10 +627,13 @@ extern int optind, opterr, optopt;
 	* (인자가 있는 옵션에서 인자를 생략할 수 없다.)
 * Guideline 8
 	* When multiple option-arguments are specified to follow a single option, they should be presented as a single argument, using <comma> characters within that argument or <blank> characters within that argument to separate them.
+	* 한 개의 옵션에 여러 개의 옵션 인자를 명시할 때 <쉼표> 또는 <공백> 문자로 구분하여 한 개의 인자(명령의 인자)로 제공되어야 한다.
 * Guideline 9
 	* All options should precede operands on the command line.
+	* 모든 옵션은 명령행에서 피연산자(명령의 인자)보다 선행해야 한다.
 * Guideline 10
 	* The first -- argument that is not an option-argument should be accepted as a delimiter indicating the end of options. Any following arguments should be treated as operands, even if they begin with the '-' character.
+	* 옵션 인자가 아닌 첫 번째 '--'로 옵션의 끝을 나타낼 수 있으며, 후행 인자는 '-'로 시작하더라도 피연산자(명령의 인자)로 간주된다.
 * Guideline 11
 	* The order of different options relative to one another should not matter, unless the options are documented as mutually-exclusive and such an option is documented to override any incompatible options preceding it. If an option that has option-arguments is repeated, the option and option-argument combinations should be interpreted in the order specified on the command line.
 * Guideline 12
