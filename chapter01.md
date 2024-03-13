@@ -17,7 +17,7 @@
 * 1.1 리눅스/유닉스 시스템 프로그래밍이란 : 리눅스, 시스템 프로그래밍, 시스템 호출, 인터페이스
 * 1.2 리눅스/유닉스 시스템 표준 : 유닉스, 시스템V, BSD, 리눅스, ANSI C, POSIX, X/Open 가이드, 단일 유닉스 명세, 시스템 V 인터페이스 정의
 * 1.3 시스템 프로그래밍 : 시스템 프로그래밍, 시스템 호출, 라이브러리 함수, 정적 라이브러리, 공유 라이브러리, man 페이지, errno, 시스템 호출과 라이브러리 함수의 오류 처리
-* 1.4 시스템 도구 :
+* 1.4 시스템 도구 : 리눅스 기본 명령, vi 편집기, 컴파일, 링크, gcc, Make, 오류 처리 함수, 동적 메모리 할당, 명령행 인자, 리눅스 명령 기본 규칙
 
 ## 예제 명세
 ### 1.3 시스템 프로그래밍
@@ -604,7 +604,7 @@ extern int optind, opterr, optopt;
 		* 옵션 -b에만 옵션 인자가 있을 때 : optstring을 ab:c로 지정
 		* 옵션 -c에만 옵션 인자가 있을 때 : optstring을 abc:로 지정
 * 리턴값 : argv에 optstring에서 지정한 옵션과 동일한 옵션 문자가 있으면 해당 문자를 리턴
-* optarget(option target) : 옵션 인자가 있는 경우 옵션 인자를 저장
+* optarg(option arguments) : 옵션 인자가 있는 경우 옵션 인자를 저장
 * optind(option index) : 다음에 처리할 argv의 주소를 저장
 	* 초기값은 1(argv[0]에 실행파일명/명령이 저장되며, argv[1]부터 명령의 인자(옵션)이기 때문)
 * optopt
@@ -651,12 +651,17 @@ extern int optind, opterr, optopt;
 	* 옵션 인자가 아닌 첫 번째 '--'로 옵션의 끝을 나타낼 수 있으며, 후행 인자는 '-'로 시작하더라도 피연산자(명령의 인자)로 간주된다.
 * Guideline 11
 	* The order of different options relative to one another should not matter, unless the options are documented as mutually-exclusive and such an option is documented to override any incompatible options preceding it. If an option that has option-arguments is repeated, the option and option-argument combinations should be interpreted in the order specified on the command line.
+	* 옵션이 상호 배타적(mutually exclusive)이라고 문서화되어있거나 어떤 옵션이 해당 옵션에 선행하며 호환하지 않는 옵션을 재정의하도록 문서화되어있지 않다면 서로 다른 옵션의 순서는 중요하지 않다.
+	* 옵션 인자를 갖는 옵션이 반복되는 경우 옵션과 옵션 인자의 조합은 명령행에 명시된 순서대로 해석되어야 한다.
 * Guideline 12
 	* The order of operands may matter and position-related interpretations should be determined on a utility-specific basis.
+	* 피연산자(명령의 인자)의 순서는 중요할 수 있으며 위치(순서) 관련 해석은 명령별로 결정되어야 한다.
 * Guideline 13
 	* For utilities that use operands to represent files to be opened for either reading or writing, the '-' operand should be used to mean only standard input (or standard output when it is clear from context that an output file is being specified) or a file named -.
+	* 피연산자(명령의 인자)를 읽기 또는 쓰기용으로 열 파일을 나타내기 위해 사용하는 명령의 경우 '-'피연산자는 표준 입력 또는 '-'라는 파일만을 의미할 때에만 사용해야 한다.
 * Guideline 14
 	* If an argument can be identified according to Guidelines 3 through 10 as an option, or as a group of options without option-arguments behind one '-' delimiter, then it should be treated as such.
+	* 명령행 인자가 지침 가이드라인 3-10에 따라 식별되거나 한 개의 '-'로 묶인 옵션 인자가 없는 옵션의 그룹일 경우 명령행 인자는 그렇게 처리(treated as such)되어야(가이드라인대로 처리되어야) 한다.
 #### 솔라리스 확장규칙 15-18
 * 규칙 15
 	* 긴 옵션은 '--' 다음에 와야 한다.
@@ -670,3 +675,40 @@ extern int optind, opterr, optopt;
 * 규칙 18
 	* 모든 짧은 옵션에 대응하는 긴 옵션이 있어야 하며
 	* 긴 옵션에도 대응하는 짧은 옵션이 있어야 한다.
+#### 예제 : getopt(3)으로 옵션 처리하기
+```C
+#include<stdio.h>
+#include<unistd.h>
+int main(int argc, char* argv[]){
+	int n;
+	extern char* optarg;
+	extern int optind;
+
+	printf("current optind : %d\n", optind);
+
+	while((n = getopt(argc, argv, "ab:c")) != -1){
+		switch(n){
+			case 'a':
+				printf("option : a\n");
+				break;
+			case 'b':
+				printf("option : b, arguments = %s\n", optarg);
+				break;
+			case 'c':
+				printf("option : c\n");
+				break;
+		}
+		printf("next optind : %d\n", optind);
+	}
+}
+```
+```
+$ main.out -a
+current optind : 1
+option : a
+next optind : 2
+$ main.out -b shagyeong
+current optind : 1
+option : b, arguments = shagyeong
+next optind : 3
+```

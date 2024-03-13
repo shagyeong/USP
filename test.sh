@@ -1,2 +1,4 @@
 gcc -o test test.c
-./test -h 20000
+./test -a
+./test -b argargarg
+./test -c
