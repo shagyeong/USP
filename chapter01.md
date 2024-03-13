@@ -116,7 +116,7 @@
 * X/Open : 1984년 유럽의 유닉스 시스템 제조업체를 중심으로 설립된 단체
 * 개방 시스템에 관한 표준 정의와 보급을 목적으로 함
 * 초기 목표 : 다양하게 파생되고 있는 유닉스 시스템에서 애플리케이션의 이식성을 높임
-* XPG(X/Open Portability Guide) : 운영체제 기본 인터페이스, 국제화, 터미널 인터페이스, 프로세스간 통신, C를 ㅍ함한 프로그래밍 언어, 데이터 관리(ISAM, SQL) 등에 관한 지침의 정의되어 있음
+* XPG(X/Open Portability Guide) : 운영체제 기본 인터페이스, 국제화, 터미널 인터페이스, 프로세스간 통신, C를 포함한 프로그래밍 언어, 데이터 관리(ISAM, SQL) 등에 관한 지침의 정의되어 있음
 * XPG 3 : 1988년 발표, POSIX 표준 통합
 * XPG 4 : 1992년 발표, XPG 최종 버전
 * 1996년 X/Open은 오픈 소프트웨어 재단과 합병해 오픈 그룹(The Open Group)으로 새 출발, UNIX®의 상표권을 소지중
@@ -178,7 +178,7 @@ return = systemcallname(arg1, arg2, ...);
 * man 페이지의 섹션 번호와 오류 처리 방법을 살피면 구별할 수 있음
 * '구별'에 집착할 필요는 없음(사용법을 확인하고 그에 따라 프로그래밍을 하면 됨)
 #### man 페이지의 섹션 번호
-* man(0) : 리눅스 시스템의 명령, 함수 등 시스템 서비스에 대한 메뉴얼 검색
+* man(1) : 리눅스 시스템의 명령, 함수 등 시스템 서비스에 대한 메뉴얼 검색
 * 섹션 1 : 일반적인 명령
 * 섹션 2 : 시스템 호출
 * 섹션 3 : 라이브러리 함수
@@ -204,7 +204,7 @@ return = systemcallname(arg1, arg2, ...);
 * 예제 : access(2)가 실패한 경우(access는 파일 존재 여부를 확인하는 시스템 호출)
 ```C
 #include<stdio.h>
-#include<usinsd.h>
+#include<unistd.h>
 #include<errno.h>
 
 extern int errno;
@@ -242,17 +242,18 @@ ERRORS
 * 예제 : fopen(3)이 실패한 경우
 ```C
 #include<stdlib.h>
-#include<usinsd.h>
+#include<stdio.h>
 #include<errno.h>
 
 extern int errno;
 
 int main(void){
 	FILE* fp;
-	if((fp = fopen("test.txt", "r")) == NULL){
-		prinft("errno = %d\n", errno);
-		exit(1)
-	}
+    if((fp = fopen("test.txt", "r")) == NULL){
+        printf("errno = %d\n", errno);
+        exit(1);
+    }
+    fclose(fp);
 }
 ```
 ```
