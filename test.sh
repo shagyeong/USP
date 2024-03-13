@@ -1,2 +1,2 @@
 gcc -o test test.c
-./test
+./test -h 20000

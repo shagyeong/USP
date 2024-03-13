@@ -1,14 +1,13 @@
-#include<stdlib.h>
 #include<stdio.h>
-#include<errno.h>
 
-extern int errno;
+int main(int argc, char* argv[]){
+    int n = 0;
+    printf("argc = %d\n", argc);
 
-int main(void){
-	FILE* fp;
-    if((fp = fopen("test.txt", "r")) == NULL){
-        printf("errno = %d\n", errno);
-        exit(1);
+    while(n < argc){
+        printf("argv[%d] = %s\n", n, argv[n]);
+        n += 1;
     }
-    fclose(fp);
+
+    return 0;
 }

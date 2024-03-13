@@ -474,7 +474,7 @@ char* strerror(int errnum);
 #include<stdlib.h>
 #include<string.h>
 
-extern int errno
+extern int errno;
 
 int main(void){
 	char* err;
@@ -597,15 +597,29 @@ int getopt(int argc, char* const argv[], const char* opstring);
 extern char* optarg;
 extern int optind, opterr, optopt;
 ```
-* 
+* argc, argv : main()에서 받은 것을 그대로 지정
+* optstring(option string) : 해당 실행 파일에서 사용할 수 있는 옵션을 지정
+	* 옵션에 인자가 있을 경우 ':'을 붙여서 지정
+	* 예시 : 사용 가능한 옵션이 -a, -b, -c
+		* 옵션 -b에만 옵션 인자가 있을 때 : optstring을 ab:c로 지정
+		* 옵션 -c에만 옵션 인자가 있을 때 : optstring을 abc:로 지정
+* 리턴값 : argv에 optstring에서 지정한 옵션과 동일한 옵션 문자가 있으면 해당 문자를 리턴
+* optarget(option target) : 옵션 인자가 있는 경우 옵션 인자를 저장
+* optind(option index) : 다음에 처리할 argv의 주소를 저장
+	* 초기값은 1(argv[0]에 실행파일명/명령이 저장되며, argv[1]부터 명령의 인자(옵션)이기 때문)
+* optopt
+	* getopt(3)은 옵션문자나 옵션 인자의 지정에 오류가 있을 경우 오류 메시지를 출력하고 '?'를 리턴함
+	* 이때 오류를 발생시킨 문자가 optopt에 저장됨
+* opterr(option error) : 오류 메시지를 출력하지 않으려면 opterr를 0으로 설정
 #### 리눅스 명령 기본 규칙 1~14
+* getopt(3)으로 옵션을 처리하려면 POSIX에서 정의한 명령에 대한 기본 규칙(Basic Utility Syntax Guideline)을 준수하여 명령행 인자를 입력해야 함
 * Guideline 1
 	* Utility names should be between two and nine characters, inclusive.
 	* 명령의 이름은  2~9글자 범위 내에서 허용한다.
 * Guideline 2
 	* Utility names should include lowercase letters (the lower character classification) and digits only from the portable character set.
-	* 명령의 이름은 오직 portable character set에 있는 소문자와 숫자만 포함할 수 있다.
-	* portable character set : POSIX에서 정의한 이식 가능한 문자 집합
+	* 명령의 이름은 오직 *\*portable character set*에 있는 소문자와 숫자만 포함할 수 있다.
+	* \*portable character set : POSIX에서 정의한 이식 가능한 문자 집합
 * Guideline 3
 	* Each option name should be a single alphanumeric character (the alnum character classification) from the portable character set. The -W (capital-W) option shall be reserved for vendor options.
 	* Multi-digit options should not be allowed.
@@ -643,3 +657,16 @@ extern int optind, opterr, optopt;
 	* For utilities that use operands to represent files to be opened for either reading or writing, the '-' operand should be used to mean only standard input (or standard output when it is clear from context that an output file is being specified) or a file named -.
 * Guideline 14
 	* If an argument can be identified according to Guidelines 3 through 10 as an option, or as a group of options without option-arguments behind one '-' delimiter, then it should be treated as such.
+#### 솔라리스 확장규칙 15-18
+* 규칙 15
+	* 긴 옵션은 '--' 다음에 와야 한다.
+	* 옵션명으로는 문자, 숫자, '-'만 사용할 수 있다.
+	* '-'로 연결한 1~3개의 단어를 사용할 수도 있다.
+* 규칙 16
+	* '--이름=인자' 형태는 긴 옵션 사용에서 옵션의 인자를 상세하게 지정할 때 사용해야 한다.
+	* '--이름 인자' 형태도 가능하다.
+* 규칙 17
+	* 모든 명령은 긴 옵션 --version(-V도 지원)과 --help(-?도 지원)를 표준으로 지원해야 한다.
+* 규칙 18
+	* 모든 짧은 옵션에 대응하는 긴 옵션이 있어야 하며
+	* 긴 옵션에도 대응하는 짧은 옵션이 있어야 한다.
