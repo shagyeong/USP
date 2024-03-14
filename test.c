@@ -1,11 +1,21 @@
+#include<fcntl.h>
 #include<unistd.h>
-#include<stdlib.h>
 #include<stdio.h>
+#include<stdlib.h>
 
 int main(void){
-    if(rmdir("dir01") == -1){
-        perror("dir01");
-        exit(1);
-    }
-    exit(0);
+    char* cwd;
+    int fd;
+
+    cwd = getcwd(NULL, BUFSIZ);
+    printf("cwd = %s\n", cwd);
+
+    fd = open("dir01", O_RDONLY);
+    fchdir(fd);
+
+    cwd = getcwd(NULL, BUFSIZ);
+    printf("cwd = %s\n", cwd);
+
+    close(fd);
+    free(cwd);
 }

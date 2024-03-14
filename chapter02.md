@@ -1,6 +1,9 @@
 # 2장 디렉터리 다루기
 ### 학습목표
-
+* 리눅스 디렉터리와 파일의 특징을 이해한다.
+* 함수를 사용해 디렉터리를 생성하고 삭제할 수 있다.
+* 함수를 사용해 디렉터리를 관리할 수 있다.
+* 함수를 사용해 디렉터리의 내요을 읽을 수 있다.
 ### 중요 개념
 * 2.1 개요 : 리눅스 파일의 구분, 파일의 구성, 디렉터리 관리 함수
 * 2.2 리눅스 파일의 특징 : 일반 파일, 특수 파일(장치 파일), 디렉터리, 블록 장치, 문자 장치, 주, 부 장치 번호, 파일 식별 문자, 파일명, inode, 데이터블록
@@ -9,13 +12,15 @@
 * 2.5 디렉터리 내용 읽기 : 
 
 ## 예제 명세
-
 ### 2.3 디렉터리 생성과 삭제
 * 066 : 디렉터리 생성하기(mkdir(2))
 * 067 : 디렉터리 삭제하기(rmdir(2))
 ### 2.4 디렉터리 관리
-* 000 : ...
-* 000 : ...
+* 070 : 현재 디렉터리의 위치 검색하기 1(getcwd(3))
+* 072 : 현재 디렉터리의 위치 검색하기 2(get_current_dir_name(3))
+* 073 : 디렉터리명 변경하기(rename(2))
+* 074 : 디렉터리 이동 1(chdir(2))
+* 076 : 디렉터리 이동 2(fchdir(2))
 ### 2.5 디렉터리 내용 읽기
 * 000 : ...
 * 000 : ...
@@ -179,4 +184,216 @@ int main(void){
     }
     exit(0);
 }
+```
+
+## 2.4 디렉터리 관리
+### 개요
+* 디렉터리 관리
+    * 현재 작업 중인 디렉터리의 위치 검색
+    * 디렉터리명 변경
+    * 디렉터리 이동
+    * ...
+### 2.4.1 현재 작업 디렉터리의 위치 검색
+#### 개요
+* 현재 작업 디렉터리의 위치를 검색할 때 사용하는 함수 : **getcwd(), get_current_dir_name()**, getwd()
+#### 현재 작업 디렉터리의 위치 검색 : getcwd(3)
+* getcwd(3) : 현재 디렉터리의 절대 경로를 리턴
+* 함수 원형
+```C
+#include<unistd.h>
+char* getcwd(char* buf, size_t size);
+```
+* buf : 현재 디렉터리의 절대 경로를 저장할 버퍼 주소
+* size : 버퍼 크기
+* 인자 지정 방식
+    * buf에 경로를 저장할 만큼 충분한 메모리를 할당, 그 크기를 size에 지정
+        * 사용자가 지정한 버퍼에 경로를 저장
+    * buf에 NULL을 지정, 할당이 필요한 메모리 크기를 size에 저장
+        * size에 지정한 크기로 버퍼를 할당하고 이 버퍼에 겨오를 저장
+        * 시스템 내부에서 malloc(3) 함수로 버퍼가 할당되므로 free(3) 함수로 **메모리를 해제해야 함**
+    * buf에 NULL을 지정, size는 0으로 지정
+        * 저장할 경로의 크기에 맞게 시스템이 알아서 버퍼를 할당하고 경로를 저장
+        * 시스템 내부에서 malloc(3) 함수로 버퍼가 할당되므로 free(3) 함수로 **메모리를 해제해야 함**
+* 저장할 경로가 버퍼의 크기를 넘으면 NULL을 리턴함
+* 예제 070 : 현재 디렉터리의 위치 검색하기 1
+```C
+#include<unistd.h>
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(void){
+    char* cwd;
+    char wd1[BUFSIZ];
+    char wd2[10];
+
+    /*(1)buf, size를 지정하는 경우*/
+    getcwd(wd1, BUFSIZ);
+    printf("wd1 = %s\n", wd1);
+    
+    /*(2)buf는 NULL로 지정, size를 지정하는 경우*/
+    cwd = getcwd(NULL, BUFSIZ);
+    printf("cwd1 = %s\n", cwd);
+    free(cwd);
+
+    /*(3)buf는 NULL로 지정, size를 0으로 지정하는 경우*/
+    cwd = getcwd(NULL, 0);
+    printf("cwd2 = %s\n", cwd);
+    free(cwd);
+
+    /*경로가 버퍼의 크기를 넘는 경우*/
+    if(getcwd(wd2, 10) == NULL){
+        perror("getcwd");
+        exit(1);
+    }
+
+    exit(0);
+}
+```
+```
+$ main.out
+wd1 = /home/shagyeong/***/*****/***
+cwd1 = /home/shagyeong/***/*****/***
+cwd2 = /home/shagyeong/***/*****/***
+getcwd: Numerical result out of range
+```
+* 'BUFSIZ'는 <stdio.h>에  정의되어 있는 상수임
+#### 현재 작업 디렉터리의 위치 검색 2 : get_current_dir_nam(3)
+* get_current_dir_name(3) : 현제 디렉터리의 절대 경로를 리턴
+* void 함수이며, getcwd(NULL, 0)과 같은 방식으로 동작한다고 생각하면 됨
+    * free(3) 함수로 **메모리를 해제해야 함**
+* 함수 원형
+```C
+#include<unistd.h>
+char* get_current_dir_name(void);
+```
+* 예제 072 : 현재 디렉터리의 위치 검색하기 2
+```C
+#define _GNU_SOURCE
+#include<unistd.h>
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(void){
+    char* cwd = get_current_dir_name();
+    printf("cwd = %s\n", cwd);
+    free(cwd);
+}
+```
+```
+$ main.out
+cwd = /home/shagyeong/***/*****/***
+```
+### 2.4.2 디렉터리명 변경
+#### 디렉터리명 변경 : rename(2)
+* renmae(2) : 디렉터리명을 새로운 디렉터리명으로 바꿈
+* 성공시 : 0 리턴
+* 실패시 : -1 리턴
+* 실행 도중 오류 발생시 원본과 새로운 디렉터리명에 해당하는 파일이 모두 남음
+* 함수 원형
+```C
+#include<stdio.h>
+int rename(const char* oldpath, const char* newpath);
+```
+* oldpath : 변경할 파일(파일과 디렉터리)명
+* newpath : 새로운 파일(파일과 디렉터리)명 - 이미 있는 경우 해당 파일/디렉터리를 지움
+* 예제 073 : 디렉터리명 변경하기
+```C
+#include<sys/stat.h>
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(void){
+    if(rename("dir01", "dir02") == -1){
+        perror("rename");
+        exit(1);
+    }
+    exit(0);
+}
+```
+```
+$ ls
+****.**, ****.**, ..., dir01
+$ main.out
+$ ls
+****.**, ****.**, ..., dir02
+```
+### 2.4.3 디렉터리 이동
+#### 디렉터리 이동 1 : chdir(2)
+* chdir(2) : 이동하려는 디렉터리의 경로를 인자로 받음
+* 절대 경로(absolute path), 상대 경로(relative path) 모두 사용 가능
+* 단, 디렉터리 이동은 프로그램 내부에서만 진행됨
+* 성공시 : 0 리턴
+* 실패시 : -1 리턴
+* 함수 원형
+```C
+#include<unistd.h>
+int chdir(const char* path);
+```
+* 예제 074 : 디렉터리 이동 1
+```C
+#include<unistd.h>
+#include<stdio.h>
+#include<stdlib.h>
+
+int main(void){
+    char* cwd;
+    
+    cwd = getcwd(NULL, BUFSIZ);
+    printf("cwd = %s\n", cwd);
+    
+    chdir("dir01");
+    cwd = getcwd(NULL, BUFSIZ);
+    printf("cwd = %s\n", cwd);
+
+    free(cwd);
+}
+```
+```
+$ main.out
+cwd = /home/shagyeong/***/*****/***
+cwd = /home/shagyeong/***/*****/***/dir01
+$ pwd
+/home/shagyeong/***/*****/*** #디렉터리 이동이 프로그램 내에서만 진행된 것을 확인
+```
+#### 디렉터리 이동 2 : fchdir(2)
+* fchdir(2) : *\*파일 디스크립터*를 인자로 받음
+    * \*파일 디스크립터 : open() 함수로 디렉터리를 열고 리턴받는 것(3장에 등장)
+* 단, 디렉터리 이동은 프로그램 내부에서만 진행됨
+* 성공시 : 0 리턴
+* 실패시 : -1 리턴
+* 함수 원형
+```C
+#include<unistd.h>
+int fchdir(int fd);
+```
+* 예제 076 : 디렉터리 이동하기
+```C
+#include<fcntl.h>
+#include<unistd.h>
+#include<stdio.h>
+#include<stdlib.h>
+
+int main(void){
+    char* cwd;
+    int fd;
+
+    cwd = getcwd(NULL, BUFSIZ);
+    printf("cwd = %s\n", cwd);
+
+    fd = open("dir01", O_RDONLY);
+    fchdir(fd);
+
+    cwd = getcwd(NULL, BUFSIZ);
+    printf("cwd = %s\n", cwd);
+
+    close(fd);
+    free(cwd);
+}
+```
+```
+$ main.out
+cwd = /home/shagyeong/***/*****/***
+cwd = /home/shagyeong/***/*****/***/dir01
+$ pwd
+/home/shagyeong/***/*****/*** #디렉터리 이동이 프로그램 내에서만 진행된 것을 확인
 ```
