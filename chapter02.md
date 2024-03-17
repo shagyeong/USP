@@ -397,3 +397,6 @@ cwd = /home/shagyeong/***/*****/***/dir01
 $ pwd
 /home/shagyeong/***/*****/*** #디렉터리 이동이 프로그램 내에서만 진행된 것을 확인
 ```
+
+
+# test
