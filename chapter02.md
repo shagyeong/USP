@@ -403,6 +403,47 @@ $ pwd
 * 디렉터리 열기, 닫기 함수
 * 디렉터리의 내용을 읽는 함수
 * 디렉터리의 오프셋을 이동하는 함수
+### 디렉터리 스트림
+* 구조체 DIR : 디렉터리 조작에 사용되는 구조체
+    * <dirent.h>에 typedef struct __dirstream DIR로 정의되어 있음
+    * 디렉터리 조작에 사용되는 구조체임
+* dirstream 구조체의 세부 내용은 시스템 내부적으로 관리하고 사용자에게 알려주지 않음
 ### 디렉터리 열기 : opendir(3)
-* opendir(3) : 인자로 지정된 디렉터리를 열고 해당 디렉터리 스트림을 생성, 디렉터리 스트림의 포인터를 리턴
-* 
+* opendir(3) : 인자로 지정된 디렉터리를 열고 해당 디렉터리 스트림(구조체 DIR의 객체)를 생성, 이 스트림의 포인터를 리턴함
+* 성공시 : 디렉터리 스트림의 '포인터'를 리턴
+* 실패시 : NULL 리턴
+* 함수 원형
+```C
+#include<sys/types.h>
+#include<dirent.h>
+
+DIR* opendir(const char* name);
+```
+* name : 대상 디렉터리명
+### 디렉터리 닫기 : closedir(3)
+* closedir(3) : DIR 객체(디렉터리 스트림)을 인자로 받아 해당 디렉터리를 닫음
+* 성공시 : 0 리턴
+* 실패시 : -1 리턴
+* 함수 원형
+```C
+#include<sys/types.h>
+#include<dirent.h>
+
+int closedir(DIR* dirp);
+```
+* dirp : directory pointer-대상 디렉터리의 디렉터리 스트림 포인터
+### 디렉터리 내용 읽기 : readdir(3)
+* readdir(3) : 디렉터리 스트림 포인터를 인자로 받아 디렉터리의 내용을 한 번에 하나씩 읽음, 더 이상 읽을 것이 없으면 NULL 리턴
+* 성공 시 : *\*dirent* 포인터를 리턴
+* \*dirent 구조체
+    * 디렉터리 내 항목의 정보를 가리킴
+    * sys/dirent.h에 정의되어 있음
+    ```C
+    struct dirent{
+        ino_t           d_ino;      /*해당 항목의 inode 번호*/
+        off_t           d_off;      /*디렉터리 오프셋의 위치*/
+        unsigned short  d_reclen;   /*해당 항목의 레코드 길이*/
+        unsigned char   d_type;     /*파일의 종류*/
+        char            d_name[256];/*파일의 이름*/
+    }
+    ```
