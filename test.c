@@ -1,21 +1,17 @@
-#include<fcntl.h>
-#include<unistd.h>
 #include<stdio.h>
 #include<stdlib.h>
+#include<dirent.h>
 
 int main(void){
-    char* cwd;
-    int fd;
+    DIR* dp;
+    struct dirent* dent;
 
-    cwd = getcwd(NULL, BUFSIZ);
-    printf("cwd = %s\n", cwd);
+    dp = opendir(".");
 
-    fd = open("dir01", O_RDONLY);
-    fchdir(fd);
+    while((dent = readdir(dp))){
+        printf("name : %s ", (*dent).d_name);
+        printf("inode : %d\n", (int)((*dent).d_ino));
+    }
 
-    cwd = getcwd(NULL, BUFSIZ);
-    printf("cwd = %s\n", cwd);
-
-    close(fd);
-    free(cwd);
+    closedir(dp);
 }
