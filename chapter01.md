@@ -27,7 +27,8 @@
 ### 1.4 시스템 도구
 * 034 : 기본 명령
 * 039 : make명령을 사용한 컴파일(Makefile, make(1))
-* 042 : 오류 메시지 출력(perror(3), strerror(3))
+* 042 : 오류 메시지 출력(perror(3))
+* 043 : 오류 메시지 출력(strerror(3))
 * 044 : 동적 메모리 할당(malloc(3), calloc(3), realloc(3), free(3))
 * 047 : 명령행 인자 출력(argc, argv)
 * 051 : 옵션 처리(getopt(3))
@@ -184,6 +185,7 @@ return = systemcallname(arg1, arg2, ...);
 * 섹션 3 : 라이브러리 함수
 #### man 페이지 검색
 * 같은 이름에 대한 메뉴얼 : 가장 낮은 섹션 번호가 기본으로 출력됨
+* 예제 029 : man 페이지의 섹션 번호(man(1))
 	* 기본 검색
 	```
  	$ man uname
@@ -201,7 +203,7 @@ return = systemcallname(arg1, arg2, ...);
 * 성공 : 0 리턴
 * 실패 : -1 리턴, **전역 변수 errno에 오류 코드를 저장**
 * 오류 코드 : man 페이지를 참조
-* 예제 : access(2)가 실패한 경우(access는 파일 존재 여부를 확인하는 시스템 호출)
+* 예제 031 : 시스템 호출의 오류 처리(errno, access(2))
 ```C
 #include<stdio.h>
 #include<unistd.h>
@@ -239,7 +241,7 @@ ERRORS
 ```
 #### 라이브러리 함수 오류 처리
 * 실패 : NULL 또는 -1(리턴값이 int일 경우) 리턴, **전역 변수 errno에 오류 코드를 저장(시스템 호출과 같음)**
-* 예제 : fopen(3)이 실패한 경우
+* 예제 033 : 라이브러리 함수의 오류 처리(errno, fopen(3))
 ```C
 #include<stdlib.h>
 #include<stdio.h>
@@ -269,6 +271,7 @@ errno = 2
 * 동적 메모리 할당
 * 명령행 인자 처리
 ### 1.4.1 기본 명령
+ * 예제 034 : 기본 명령
 #### 개요
 * 필수적으로 알아야 할 기본 명령 : 시스템 접속, 파일, 디렉터리 관련 명령
 #### 로그인/로그아웃 명령
@@ -378,8 +381,7 @@ $./test.out
 ```
 $ sudo apt install make
 ```
-* Makefile 예제 : 외부 파일에 정의된 함수를 main()에서 사용
-* 
+* 예제 039 : make명령을 사용한 컴파일(Makefile, make(1))
 ```
 # Makefile
 
@@ -438,7 +440,7 @@ Makefile addfunc. main.c
 void perror(const char* s);
 ```
 * s : 출력할 문자열
-* 예제 : access(2) 오류
+* 예제 042 : 오류 메시지 출력(perror(3))
 ```C
 #include<stdio.h>
 #include<unistd.h>
@@ -466,7 +468,7 @@ test.txt : No such file or directory
 char* strerror(int errnum);
 ```
 * errnum : errno에 저장된 값
-* 예제 : access(2) 오류
+* 043 : 오류 메시지 출력(strerror(3))
 ```C
 #include<stdio.h>
 #include<unistd.h>
@@ -497,6 +499,7 @@ $ main.out
 	* 데이터 양에 따라 메모리 공간을 효율적으로 사용 가능
 * 메모리 할당 함수 : malloc(3), calloc(3), realloc(3)
 * 메모리 해제 함수 : free(3)
+* 예제 044 : 동적 메모리 할당(malloc(3), calloc(3), realloc(3), free(3))
 #### 메모리 할당 : malloc(3)
 * malloc(3) : 인자로 지정한 크기의 메모리를 할당
 * 성공시 : 시작 주소 리턴
@@ -566,7 +569,7 @@ int main(int argc, char* argv[]){
 ```
 * argc : 명령과 인자를 포함한 개수(argv 배열의 크기)
 * argv[] : 명령과 각 인자를 담고있는 배열(명령행 인자는 argv에 **문자열 형태**로 저장됨)
-* 예제 : 명령행 인자 전달 과정
+* 예제 047 : 명령행 인자 출력(argc, argv)
 ```C
 #include<stdio.h>
 int main(int argc, char* argv){
@@ -675,7 +678,8 @@ extern int optind, opterr, optopt;
 * 규칙 18
 	* 모든 짧은 옵션에 대응하는 긴 옵션이 있어야 하며
 	* 긴 옵션에도 대응하는 짧은 옵션이 있어야 한다.
-#### 예제 : getopt(3)으로 옵션 처리하기
+#### 예제
+* 예제 051 : 옵션 처리(getopt(3))
 ```C
 #include<stdio.h>
 #include<unistd.h>
