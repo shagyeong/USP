@@ -447,3 +447,93 @@ int closedir(DIR* dirp);
         char            d_name[256];/*파일의 이름*/
     }
     ```
+* 예제 080 : 디렉터리 내용 읽기(opendir(3), closedir(3), readdir(3))
+```C
+#include<stdio.h>
+#include<stdlib.h>
+#include<dirent.h>
+
+int main(void){
+    DIR* dp;
+    struct dirent* dent;
+
+    dp = opendir(".");
+
+    while(dent = readdir(dp)){
+        printf("name : %s ", (*dent).d_name);
+        printf("inode : %d\n", (int)(*dent).d_ino);
+    }
+
+    closedir(dp);
+}
+```
+```
+$ main.out
+...(중략)
+name : *********.md inode : 393670
+name : ****.c inode : 401473
+name : *********.md inode : 395378
+...(후략)
+```
+### 디렉터리의 내용을 읽는 위치 변경하기 : telldir(3), seekdir(3), rewinddir(3)
+* **오프셋**
+    * 디렉터리 스트림에서 현재 내용을 읽고 있는 위치를 나타내는 값
+    * 디렉터리를 열고 내용을 읽으면 오프셋 값이 이동함
+* telldir(3), seekdir(3), rewinddir(3) : 오프셋의 현재 위치를 읽고 이동시키는 함수
+* telldir(3) : 디렉터리 스트림을 인자로 받아 현재 위치를 리턴
+* seekdir(3) : 디렉터리 스트림, telldir(3)이 리턴한 위치를 인자로 받아 '오프셋을 이동'시킴
+* rewinddir(3) : 디렉터리 스트림의 위치를 디렉터리 시작지점으로 이동시킴
+* 함수 원형
+```C
+#include<sys/types.h>
+#include<dirent.h>
+
+long telldir(DIR* dirp);
+void seekdir(DIR* dirp, long loc);
+void rewinddir(DIR* dirp);
+```
+* 081 : 디렉터리의 내용을 읽는 위치 파악하기(telldir(3), seekdir(3), rewinddir(3))
+```C
+#include<stdio.h>
+#include<stdlib.h>
+#include<dirent.h>
+
+int main(void){
+    DIR* dp;
+    struct dirent* dent;
+    long loc;
+
+    dp = opendir(".");
+    printf("start position : %ld\n", telldir(dp));
+
+    while(dent = readdir(dp)){
+        printf("read : %s -> ", (*dent).d_name);
+        printf("current position : %ld\n", telldir(dp));
+    }
+
+    rewinddir(dp);
+    printf("rewinded position : %ld\n", telldir(dp));
+
+    /*항목 한 개를 읽은 후 오프셋의 위치*/
+    readdir(dp);
+    loc = telldir(dp);
+    seekdir(dp, loc);
+    printf("current position : %ld\n", telldir(dp));
+
+    dent = readdir(dp);
+    printf("read : %s\n", (*dent).d_name);
+
+    closedir(dp);
+}
+```
+```
+$ main.out
+start position : 0
+read : **** -> current position : 469646786847432071
+read : .*** -> current position : 660080571890982081
+read : . -> current position : 2384309329195809509
+...(중략)
+rewinded position : 0
+current position : 469646786847432071
+read : .***
+```
