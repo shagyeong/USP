@@ -53,3 +53,53 @@
 * 심벌릭 링크 내용 읽기 : readlink(2)
 * 심벌릭 링크 원본 파일의 경로 검색 : realpath(3)
 * 링크 끊기 : unlink(2)
+
+## 3.2 파일 정보 검색
+### 개요
+* 2장의 내용 : 파일의 정보는 inode에 저장되어 있음
+* inode 검색 함수 : stat(2), lstat(2), fstat(2)
+* lstat() : '심벌릭 링크 파일'의 inode를 검색하는 함수-4절에 등장
+### 파일명으로 파일 정보 검색 : stat(2)
+```C
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<unistd.h>
+
+int stat(const char* pathname, struct stat* statbuf);
+```
+* pathname에 지정한 파일의 정보를 검색
+* 성공시 : **stat 구조체에 파일 정보를 저장**하고 0을 리턴
+* 실패시 : -1 리턴
+* pathname에 지정한 파일에 대한 읽기/쓰기 권한이 있어야 하는것은 아님
+    * 단, 파일에 이르는 경로 상 각 디렉터리에 대한 읽기 권한은 있어야 함
+* 파일 정보를 검색하는데 가장 많이 사용하는 함수임
+### stat 구조체
+* stat(2) 함수로 검색한 inode 정보는 stat 구조체에 저장됨
+* stat 구조체 정의 또는 <stat.h>의 위치는 배포판 또는 유닉스 종류에 따라 차이가 있음
+* stat 구조체의 세부 구조
+```
+$ man -s 2 stat
+struct stat{
+    dev_t       st_dev;         # 저장되어있는 장치 번호
+    ino_t       st_ino;         # inode 번호
+    mode_t      st_mode;        # 종류와 접근 권한
+    nlink_t     st_nlink;       # 하드 링크의 개수
+    uid_t       st_uid;         # 소유자의 UID
+    gid_t       st_gid;         # 소유 그룹의 GID
+    dev_t       st_rdev;        # 장치 파일일 경우 주/부 장치번호 저장
+    off_t       st_size
+    blksize_t   st_blksize;     # 파일 입출력시 버퍼 크기 저장
+    blkcnt_t    st_blocks;      # 파일에 할당된 파일 시스템의 블록 수(512바이트)
+    struct timespec st_atim;    # 마지막으로 파일을 읽거나 실행한 시각
+    struct timespec st_mtim;    # 마지막으로 파일의 내용을 변경(쓰기)한 시각
+    struct timespec st_ctim;    # 마지막으로 inode의 내용을 변경한 시각(소유자/그룹 변경, 파일 크기 변경, 링크 개수 변경 등)
+
+    # 리눅스 2.6 이전 버전과의 호환성을 위해 타임스탬프 값을 초 단위 값으로 매핑해 정의
+    #define st_atime st_atim.tv_sec
+    #define st_mtime st_mtim.tv_sec
+    #define st_ctime st_ctim.tv_sec
+}
+```
+* 구조체 timespec : 초와 나노초 저장을 위한 구조체
+    * 리눅스 커널 2.6부터 지원
+    * 1970년 1월 1일 이후
