@@ -14,7 +14,7 @@
 * 095 : 파일명으로 inode 검색하기(stat(2))
 * 097 : 파일 기술자로 파일 정보 검색하기(fstat(2))
 ### 3.3 파일 접근 권한 제어
-* 000 : ...
+* 099 : 상수를 이용해 파일 종류 검색하기
 * 000 : ...
 ### 3.4 링크 파일 생성
 * 000 : ...
@@ -56,7 +56,7 @@
 * 2장의 내용 : 파일의 정보는 inode에 저장되어 있음
 * inode 검색 함수 : stat(2), lstat(2), fstat(2)
 * lstat() : '심벌릭 링크 파일'의 inode를 검색하는 함수-4절에 등장
-### 파일명으로 파일 정보 검색 : stat(2)
+### 파일명으로 파일 정보 검색 : stat(2)* 000 : ...
 ```C
 #include<sys/types.h>
 #include<sys/stat.h>
@@ -174,3 +174,106 @@ $ main.out
 inode = 414028
 uid = 1000
 ```
+
+## 3.3 파일 접근 권한 제어
+### 개요
+* mode_t st_mode : 파일의 종류와 접근 권한 정보가 저장됨
+* st_mode의 값 해석을 위해 sys/stat.h에 정의된 상수와 매크로를 이용해야 함
+### 3.3.1 st_mode의 구조
+#### mode_t(st_mode의 자료형)
+* unsigned int로 정의됨
+* 16비트 사용
+### st_mode의 구조
+* 파일 종류(4비트) *\*('-', 'd', 'b', 'c', 'l')*
+* 특수 접근 권한(3비트) : setuid, setgid, sticky bit
+* 소유자 접근 권한(3비트) : *\*\*r, w, x*
+* 그룹 접근 권한(3비트) : r, w, x
+* 기타 사용자 접근 권한(3비트) : r, w, x
+* \*파일 종류 식별 문자는 2.2.1 참고
+* \*\*r(read : 읽기 권한), w(write : 쓰기 권한), x(execute : 실행 권한)
+#### sys/stat.h의 상수/매크로
+* 위 구조로 저장된 값과 상수를 AND 연산한 결과를 추출함
+### 3.3.2 파일의 종류 검색
+#### 상수를 이용한 파일 종류 검색
+* 상수의 값은 8진수임
+* 0170000(S_IFMT) : 파일의 종류 비트를 가져오기 위한 **비트 마스크**
+    * 17(8) = 111(2)이므로 AND연산을 하면 st_mode의 값과 AND 연산을 하면 파일 종류 부분만 남음
+* 0140000(S_IFSOCK) : 소켓 파일
+* 0120000(S_IFLNK) : 심벌릭 링크 파일
+* 0100000(S_IFREG) : 일반 파일
+* 0060000(S_IFBLK) : 블록 장치 특수 파일
+* 0040000(S_IFDIR) : 디렉터리
+* 0020000(S_IFCHR) : 문자 장치 특수 파일
+* 0010000(S_IFIFO) : FIFO 파일
+#### 예제 099 : 상수를 이용해 파일 종류 검색하기
+```C
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<stdio.h>
+
+int main(void){
+    struct stat statbuf;
+    int kind;
+
+    stat("linux.txt", &statbuf);
+    kind = statbuf.st_mode & __S_IFMT;
+
+    printf("mode = %o\n", (unsigned int)statbuf.st_mode);
+    printf("kind = %o\n", kind);
+
+    switch(kind){
+    case __S_IFLNK:
+        printf("symbolic link\n");
+        break;
+    case __S_IFDIR:
+        printf("directory\n");
+        break;
+    case __S_IFREG:
+        printf("regular file\n");
+        break;
+    }
+}
+```
+```
+mode = 100664
+kind = 100000
+regular file
+```
+#### 매크로를 이용한 파일 종류 검색
+* POSIX 표준 매크로
+    * S_ISLNK(m) : (((m) & S_IFMT) == S_IFLNK)
+    * S_ISREG(m) : (((m) & S_IFMT) == S_IFREG)
+    * S_ISDIR(m) : (((m) & S_IFMT) == S_IFDIR)
+    * S_ISCHR(m) : (((m) & S_IFMT) == S_IFCHR)
+    * S_ISBLK(m) : (((m) & S_IFMT) == S_IFBLK)
+    * S_ISFIFO(m) : (((m) & S_IFMT) == S_IFFIFO)
+    * S_ISSOCK(m) : (((m) & S_IFMT) == S_IFSOCK)
+* 비트 마스크(S_IFMT)와 AND 연산 결과를 상수와 비교해 파일의 종류를 판다함
+#### 예제 101 : 매크로를 이용해 파일 종류 검색하기
+```C
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<stdio.h>
+
+int main(void){
+    struct stat statbuf;
+    int kind;
+    stat("linux.txt", &statbuf);
+
+    printf("mode = %d\n", (unsigned int)statbuf.st_mode);
+    
+    if(S_ISLNK(statbuf.st_mode))
+        printf("LNK\n");
+    if(S_ISDIR(statbuf.st_mode))
+        printf("DIR\n");
+    if(S_ISREG(statbuf.st_mode))
+        printf("REG\n");
+}
+```
+```
+$ main.out
+mode = 33204
+REG
+```
+### 3.3.3 파일 접근 권한 검색
+#### POSIX 표준
