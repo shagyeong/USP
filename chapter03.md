@@ -276,4 +276,59 @@ mode = 33204
 REG
 ```
 ### 3.3.3 파일 접근 권한 검색
-#### POSIX 표준
+#### 파일 접근 권한 검색 상수
+* (0x800)S_ISUID : setuid 설정 확인
+* (0x400)S_ISGID : setgid 설정 환인
+* (0x200)S_ISVTX : sticky 비트 설정 확인
+* (00400)S_ISREAD : 소유자의 읽기 권한 확인
+* (00200)S_ISWRITE : 소유자의 쓰기 권한 확인
+* (00100)S_ISEXEC : 소유자의 실행 권한 확인
+* st_mode와 AND 연산으로 확인
+* 그룹, 기타 사용자에 대한 접근 권한에 대한 상수는 별도로 정의되어 있지 않음
+    * st_mode의 값 또는 상수값을 **비트 이동**시킨 후 연산 수행
+    * ```st_mode & (S_IREAD >> 3)```
+#### POSIX 파일 접근 권한 검색 상수
+* POSIX에서 번거로운 시프트 연산 없는 상수를 정의함
+* 읽기/쓰기/실행 권한
+    * RWXU(00700)
+    * RWXG(00070)
+    * RWXO(00007)
+* 읽기 권한
+    * RUSR(00400)
+    * RGRP(00040)
+    * ROTH(00004)
+* 쓰기 권한
+    * WUSR(00200)
+    * WGRP(00020)
+    * WOTH(00002)
+* 실행 권한
+    * XUSR(00100)
+    * XGRP(00010)
+    * XOTH(00001)
+#### 예제 104 : 상수를 이용해 파일의 접근 권한 검색하기
+```C
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<stdio.h>
+
+int main(void){
+    struct stat statbuf;
+    
+    stat("linux.txt", &statbuf);
+    printf("mode = %o\n", (unsigned int)statbuf.st_mode);
+
+    if((statbuf.st_mode & __S_IREAD) != 0)
+        printf("rusr\n");
+    if((statbuf.st_mode & __S_IREAD >> 3) != 0)
+        printf("rgrp\n");
+    if((statbuf.st_mode & __S_IREAD >> 6) != 0)
+        printf("roth\n");
+}
+```
+```
+$ main.out
+mode = 100664
+rusr
+rgrp
+roth
+```
