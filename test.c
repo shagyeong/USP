@@ -1,17 +1,15 @@
-#include<sys/types.h>
-#include<sys/stat.h>
+#include<sys/errno.h>
+#include<unistd.h>
 #include<stdio.h>
 
-int main(void){
-    struct stat statbuf;
-    
-    stat("linux.txt", &statbuf);
-    printf("mode = %o\n", (unsigned int)statbuf.st_mode);
+extern int errno;
 
-    if((statbuf.st_mode & __S_IREAD) != 0)
-        printf("rusr\n");
-    if((statbuf.st_mode & __S_IREAD >> 3) != 0)
-        printf("rgrp\n");
-    if((statbuf.st_mode & __S_IREAD >> 6) != 0)
-        printf("roth\n");
+int main(void){
+    if(access("linuxxxx.txt", F_OK) == -1 && errno == ENOENT)
+        printf("file not exitst\n");
+
+    if(access("linux.txt", R_OK) == 0)
+        printf("read permission is permitted\n");
+    else if(access("linux.txt", R_OK) == -1 && errno == EACCES)
+        printf("read permission is not permitted\n");
 }
