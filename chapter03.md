@@ -290,21 +290,21 @@ REG
 #### POSIX 파일 접근 권한 검색 상수
 * POSIX에서 번거로운 시프트 연산 없는 상수를 정의함
 * 읽기/쓰기/실행 권한
-    * RWXU(00700)
-    * RWXG(00070)
-    * RWXO(00007)
+    * S_IRWXU(00700)
+    * S_IRWXG(00070)
+    * S_IRWXO(00007)
 * 읽기 권한
-    * RUSR(00400)
-    * RGRP(00040)
-    * ROTH(00004)
+    * S_IRUSR(00400)
+    * S_IRGRP(00040)
+    * S_IROTH(00004)
 * 쓰기 권한
-    * WUSR(00200)
-    * WGRP(00020)
-    * WOTH(00002)
+    * S_IWUSR(00200)
+    * S_IWGRP(00020)
+    * S_IWOTH(00002)
 * 실행 권한
-    * XUSR(00100)
-    * XGRP(00010)
-    * XOTH(00001)
+    * S_IXUSR(00100)
+    * S_IXGRP(00010)
+    * S_IXOTH(00001)
 #### 예제 104 : 상수를 이용해 파일의 접근 권한 검색하기
 ```C
 #include<sys/types.h>
@@ -332,3 +332,61 @@ rusr
 rgrp
 roth
 ```
+#### 함수를 이용한 접근 권한 검색 : access(2)
+```C
+#include<unistd.h>
+
+int access(const char* pathname, int mode);
+```
+* 인자 설명
+    * pathname : 파일 경로
+    * mode : 접근 권한
+* pathname에 지정된 파일이 mode로 지정된 권한을 가지고 있는지 확인
+* 단, EUID(effective user ID : 유효 사용자 ID)가 아닌 RUID(real user ID : 실제 사용자 ID)에 대한 접근 권한만 확인 가능함
+* 성공시(접근 권한이 있을 시) : 0 리턴
+* 오류가 있을 시 : -1 리턴
+    * ENOENT : 해당 파일이 존재하지 않거나 심벌릭 링크의 경우 원본 파일이 없음
+    * EACCES : 접근 권한이 없음
+* mode 상수
+    * <unistd.h>에 정의되어 있음
+    * R_OK : 읽기 권한 확인
+    * W_OK : 쓰기 권한 확인
+    * X_OK : 실행 권한 확인
+    * F_OK : 파일이 존재하는지 확인
+#### 예제 106 : 함수를 이용해 접근 권한 검색하기(access(2))
+```C
+#include<sys/errno.h>
+#include<unistd.h>
+#include<stdio.h>
+
+extern int errno;
+
+int main(void){
+    if(access("linuxxxx.txt", F_OK) == -1 && errno == ENOENT)
+        printf("file not exitst\n");
+
+    if(access("linux.txt", R_OK) == 0)
+        printf("read permission is permitted\n");
+    else if(access("linux.txt", R_OK) == -1 && errno == EACCES)
+        printf("read permission is not permitted\n");
+}
+```
+```
+$ main.out
+file not exitst
+read permission is permitted
+```
+### 3.3.4파일 접근 권한 변경
+#### 개요
+* chmod(1) : 파일 접근 권한을 변경하는 명령
+* chmod(2) : 파일 접근 권한을 변경하는 시스템 호출
+* fchmod(2) : (파일 기술자를 이용하여)파일 접근 권한을 변경하는 시스템 호출
+#### 파일명으로 접근 권한 변경 : chmod(2)
+```C
+#include<sys/stat.h>
+
+int chmod(const char* pathname, mode_t mode);
+```
+* 인자 설명
+    * pathname : 파일의 경로
+    * mode : 접근 권한
