@@ -15,7 +15,11 @@
 * 097 : 파일 기술자로 파일 정보 검색하기(fstat(2))
 ### 3.3 파일 접근 권한 제어
 * 099 : 상수를 이용해 파일 종류 검색하기
-* 000 : ...
+* 101 : 매크로를 이용해 파일 종류 검색하기
+* 104 : 상수를 이용해 파일의 접근 권한 검색하기
+* 106 : 함수를 이용해 접근 권한 검색하기(access(2))
+* 108 : 파일명으로 접근 권한 변경하기(chmod(2))
+
 ### 3.4 링크 파일 생성
 * 000 : ...
 * 000 : ...
@@ -390,3 +394,56 @@ int chmod(const char* pathname, mode_t mode);
 * 인자 설명
     * pathname : 파일의 경로
     * mode : 접근 권한
+* pahtname에 지정한 파일을 mode에 지정한 상수값으로 권한 변경
+* 특수 접근 권한 변경시 3.3.3의 파일 접근 권한 상수를 이용함
+    * S_ISUID
+    * S_ISGID
+    * S_ISVTX
+* 소유자/그룹/기타 사용자의 접근 권한 변경시 3.3.3의 POSIX 파일 접근 권한 검색 상수를 이용함
+* stat(2) 함수로 기존 권한을 읽고 권한 연산을 할 수 있음
+    * 권한을 더할 때는 OR 연산
+    * 권한 제거시 제거하려는 권한에 NOT 연산 후 AND 연산
+```C
+// 예시 : 그룹 쓰기 권한 추가 및 제거
+mode |= S_IWGRP;
+mode &= ~(S_IWGRP);
+chmod(pahtname, mode); //mode 변경 후 chmod(2)를 호출해야 접근 권한이 적용됨
+```
+#### 예제 108 : 파일명으로 접근 권한 변경하기
+```C
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<stdio.h>
+
+int main(void){
+    struct stat statbuf;
+    
+    chmod("linuxt.txt", S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH);
+    stat("linux.txt", &statbuf);
+
+    printf("mode = %o\n", (unsigned int)statbuf.st_mode);
+
+    statbuf.st_mode |= S_IWGRP;
+    statbuf.st_mode &= ~(S_IROTH);
+    chmod("linux.txt", statbuf.st_mode);
+    stat("linux.txt", &statbuf);
+
+    printf("mode = %o\n", (unsigned int)statbuf.st_mode);
+}
+```
+```
+#test.sh
+touch linux.txt
+ls -l linux.txt
+gcc -o test test.c
+./test
+ls -l linux.txt
+rm linux.txt
+```
+```
+$ sh test.sh
+-rw-rw-r-- 1 ********* ********* 0  *월  * **:** linux.txt
+mode = 100664
+mode = 100660
+-rw-rw---- 1 ********* ********* 0  *월  * **:** linux.txt
+```
