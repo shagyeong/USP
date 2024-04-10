@@ -1,18 +1,27 @@
-#include<sys/stat.h>
+#include<fcntl.h>
 #include<unistd.h>
+#include<stdlib.h>
 #include<stdio.h>
 
 int main(void){
-    link("linux.txt", "linux.ln");
-    symlink("linux.txt", "linux.sym");
-    struct stat statbuf;
+    int fd, n;
+    char buf[10];
 
-    stat("linux.ln", &statbuf);
-    printf("link count : %d\n", (int)statbuf.st_nlink);
+    fd = open("test.txt", O_RDONLY);
+    if(fd == -1){
+        perror("open");
+        exit(1);
+    }
 
-    unlink("linux.ln");
-    stat("linux.txt", &statbuf);
-    printf("link count : %d\n", (int)statbuf.st_nlink);
+    n = read(fd, buf, 4);
+    if(n == -1){
+        perror("read");
+        exit(1);
+    }
 
-    unlink("linux.sym");
+    buf[n] = '\0';
+    printf("n = %d, buf = %s\n", n, buf);
+    close(fd);
+
+    exit(0);
 }
