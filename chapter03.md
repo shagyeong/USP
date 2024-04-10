@@ -4,7 +4,7 @@
 * 하드 링크와 심벌릭 링크 파일을 이해하고 관련 함수를 사용할 수 있다.
 * 함수를 사용해 파일 사용 권한을 검색하고 조정할 수 있다.
 ### 중요 개념
-* 3.1 개요 : 구조체 stat, 링크
+* 3.1 개요 : 
 * 3.2 파일 정보 검색 : 
 * 3.3 파일 접근 권한 제어 : 
 * 3.4 링크 파일 생성 : 
@@ -435,19 +435,12 @@ int main(void){
 }
 ```
 ```
-#test.sh
-touch linux.txt
-ls -l linux.txt
-gcc -o test test.c
-./test
-ls -l linux.txt
-rm linux.txt
-```
-```
-$ sh test.sh
+$ ls -l linux.txt
 -rw-rw-r-- 1 ********* ********* 0  *월  * **:** linux.txt
+$ main.out
 mode = 100664
 mode = 100660
+$ ls -l linux.txt
 -rw-rw---- 1 ********* ********* 0  *월  * **:** linux.txt
 ```
 #### 파일 기술자로 접근 권한 변경 : fchmod(2)
@@ -474,7 +467,8 @@ int fchmod(int fd, mode_t mode);
     * lib 디렉터리는 예전 시스템과의 호환을 위해 필요함
 ### 3.4.1 하드 링크
 #### 개요
-* 하드 링크 : 기존 파일과 **동일한 inode를 사용**하여 접근할 수 있는 파일명을 생성
+* 하드 링크 : 기존 파일에 접근할 수 있는 새로운 '파일명'을 생성
+* 기존 파일과 **동일한 inode를 사용**
 * 하드 링크 생성시 inode에 저장된 링크 개수(link count)가 증가함
 #### 하드 링크 생성 : link(2)
 ```C
@@ -489,15 +483,228 @@ int link(const char* oldpath, const char* newpath);)
 * 실패시 : -1 리턴
 * 하드 링크는 **같은 파일 시스템**에 있어야 함
 #### 예제 111 : 하드 링크 생성하기(link(2))
+```C
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<unistd.h>
+#include<stdio.h>
 
+int main(void){
+    struct stat statbuf;
 
+    stat("linux.txt", &statbuf);
+    printf("link count : %d\n", (int)statbuf.st_nlink); //링크 전 링크 개수
 
+    link("linux.txt", "linux.ln");
+    stat("linux.txt", &statbuf);
+    printf("link count : %d\n", (int)statbuf.st_nlink); //링크 후 링크 개수
+}
+```
+```
+$ ls -l linux.*
+-rw-rw-r-- 1 ********* ********* 0  *월 ** **:** linux.txt
+$ main.out
+link count : 1
+link count : 2
+$ ls -l linux.*
+-rw-rw-r-- 2 ********* ********* 0  *월 ** **:** linux.ln
+-rw-rw-r-- 2 ********* ********* 0  *월 ** **:** linux.txt
+```
+### 3.4.2 심벌릭 링크
+#### 개요
+* 심벌릭 링크 : 기존 파일에 접근할 수 있는 새로운 '다른 파일'을 생성
+* 기존 파일과 **다른 inode를 사용**하며, 기존 파일의 경로를 저장함
+* lstat(2) : ('다른 파일'을 생성하므로)stat(2)가 아닌 lstat(2)를 이용해 심벌릭 링크의 정보를 검색함
+* readlink(2): 심벌릭 링크 자체가 담고 있는 내용 검색
+#### 심벌릭 링크 생성 : symlink(2)
+```C
+#include<unistd.h>
 
+int symlink(const char* target, const char* linkpath);
+```
+* 인자 설명
+    * target : 기존 파일의 경로
+    * linkpath : 새로 생성할 심벌릭 링크의 경로
+* 성공시 : 0 리턴
+* 실패시 : -1 리턴
+* 심벌릭 링크는 기존 파일과 **다른 파일 시스템**에 생성할 수 있음
+#### 예제 113 : 심벌릭 링크 생성하기(symlink(2))
+```C
+#include<unistd.h>
 
+int main(void){
+    symlink("linux.txt", "linux.sym");
+}
+```
+```
+$ ls -l linux.*
+-rw-rw-r-- 1 shagyeong shagyeong 0  4월 10 09:20 linux.txt
+$ main.out
+$ ls -l linux.*
+lrwxrwxrwx 1 shagyeong shagyeong 9  4월 10 09:20 linux.sym -> linux.txt
+-rw-rw-r-- 1 shagyeong shagyeong 0  4월 10 09:20 linux.txt
+```
+#### 심벌릭 링크의 정보 검색 : lstat(2)
+```C
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<unistd.h>
 
+int lstat(const char* pathname, struct stat* statbuf);
+```
+* 인자 설명
+    * pathname : 심벌릭 링크의 경로
+    * statbuf : 새로 생성할 링크의 경로
+* 심벌릭 링크(원본과 별개의 파일)의 파일 정보를 검색(stat(2) 함수 사용시 원본 파일에 대한 검색)
+#### 예제 114 : 심벌릭 링크의 정보 검색하기(lstat(2))
+```C
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<unistd.h>
+#include<stdio.h>
 
-예제 113 : 심벌릭 링크 생성하기(symlink(2))
-예제 114 : 심벌릭 링크의 정보 검색하기(lstat(2))
-예제 116 : 심벌릭 링크의 내용 읽기(readlink(2))
-예제 117 : 원본 파일의 경로 읽기(realpath(3))
-예제 118 : 링크 끊기(unlink(2))
+int main(void){
+    struct stat statbuf;
+    symlink("linux.txt", "linux.sym");
+
+    stat("linux.txt", &statbuf);
+    printf("stat : linux.txt\n");
+    printf("link count : %d\n", (int)statbuf.st_nlink);
+    printf("inode : %d\n", (int)statbuf.st_ino);
+    
+    stat("linux.sym", &statbuf);
+    printf("stat : linux.sym\n");
+    printf("link count : %d\n", (int)statbuf.st_nlink);
+    printf("inode : %d\n", (int)statbuf.st_ino);
+
+    lstat("linux.sym", &statbuf);
+    printf("lstat : linux.sym\n");
+    printf("link count : %d\n", (int)statbuf.st_nlink);
+    printf("inode : %d\n", (int)statbuf.st_ino);
+}
+```
+```
+$ main.out
+stat : linux.txt
+link count : 1
+inode : 397696
+stat : linux.sym
+link count : 1
+inode : 397696
+lstat : linux.sym
+link count : 1
+inode : 397622
+```
+#### 심벌릭 링크의 내용 읽기 : readlink(2)
+```C
+#include<unistd.h>
+
+ssize_t readlink(const char* pahtname, char* buf, size_t bufsiz);
+```
+* 인자 설명
+    * pathname : 심벌릭 링크의 경로
+    * buf : 읽어온 내용을 저장할 버퍼
+    * bufsiz : 버퍼의 크기
+* 심벌릭 링크 자체의 내용을 읽음
+* 성공시 : 읽어온 데이터의 크기(바이트 수) 리턴
+* 실패시 : -1 리턴
+#### 예제 116 : 심벌릭 링크의 내용 읽기(readlink(2))
+```C
+#include<sys/stat.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(void){
+    symlink("linux.txt", "linux.sym");
+
+    char buf[BUFSIZ];
+    int n = readlink("linux.sym", buf, BUFSIZ);
+    if(n == -1){
+        perror("readlink");
+        exit(1);
+    }
+
+    buf[n] = '\0';
+    printf("%s\n", buf);
+
+    exit(0);
+}
+```
+```
+$ main.out
+linux.txt
+#ls -l 명령으로 확인했을 때 '->' 다음에 오는 원본 파일의 경로가 심벌릭 링크의 데이터 블록에 저장되어 있는 내용임
+$ ls -l linux.sym
+lrwxrwxrwx 1 shagyeong shagyeong 9  4월 10 09:54 linux.sym -> linux.txt
+#심벌릭 링크의 크기는 'linux.txt'의 바이트 수인 9
+```
+#### 심벌릭 링크 원본 파일의 경로 읽기 : realpath(3)
+```C
+#include<limits.h>
+#include<stdlib.h>
+
+char* realpath(const char* path, char* resolved_path);
+```
+* 인자 설명
+    * path : 심벌릭 링크의 경로명
+    * resolved_path : 경로명을 저장할 버퍼 주소
+* path에 해당하는 심벌릭 링크에 대한 원본 파일의 실제 경로명을 resolved_path에 저장
+#### 예제 117 : 원본 파일의 경로 읽기(realpath(3))
+```C
+#include<sys/stat.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(void){
+    symlink("linux.txt", "linux.sym");
+    char buf[BUFSIZ];
+    
+    realpath("linux.sym", buf);
+    printf("linux.sym realpath : %s\n", buf);
+}
+```
+```
+$ main.out
+linux.sym realpath : /home/*********/***/*****/***/linux.txt
+```
+### 3.4.3 링크 끊기
+#### 개요
+* 링크 끊기 : 파일 시스템에서 링크를 삭제
+* unlink(2) 함수를 사용
+#### 링크 끊기 : unlink(2)
+```C
+#include<unistd.h>
+int unlink(const char* pathname);
+```
+* 인자 설명
+    * pathname : 삭제할 링크의 경로
+* 연결을 끊은 경로명이 그 파일을 참조하는 마지막 링크일 경우 파일은 삭제됨
+* 심벌릭 링크를 잉ㄴ자로 지정한 경우 원본 파일이 아닌 심벌릭 링크 파일이 삭제됨
+#### 예제 118 : 링크 끊기(unlink(2))
+```C
+#include<sys/stat.h>
+#include<unistd.h>
+#include<stdio.h>
+
+int main(void){
+    link("linux.txt", "linux.ln");
+    symlink("linux.txt", "linux.sym");
+    struct stat statbuf;
+
+    stat("linux.ln", &statbuf);
+    printf("link count : %d\n", (int)statbuf.st_nlink);
+
+    unlink("linux.ln");
+    stat("linux.txt", &statbuf);
+    printf("link count : %d\n", (int)statbuf.st_nlink);
+
+    unlink("linux.sym");
+}
+```
+```
+$ main.out
+link count : 2
+link count : 1
+```
