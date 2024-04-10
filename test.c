@@ -1,19 +1,18 @@
-#include<sys/types.h>
 #include<sys/stat.h>
+#include<unistd.h>
 #include<stdio.h>
 
 int main(void){
+    link("linux.txt", "linux.ln");
+    symlink("linux.txt", "linux.sym");
     struct stat statbuf;
-    
-    chmod("linuxt.txt", S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH);
+
+    stat("linux.ln", &statbuf);
+    printf("link count : %d\n", (int)statbuf.st_nlink);
+
+    unlink("linux.ln");
     stat("linux.txt", &statbuf);
+    printf("link count : %d\n", (int)statbuf.st_nlink);
 
-    printf("mode = %o\n", (unsigned int)statbuf.st_mode);
-
-    statbuf.st_mode |= S_IWGRP;
-    statbuf.st_mode &= ~(S_IROTH);
-    chmod("linux.txt", statbuf.st_mode);
-    stat("linux.txt", &statbuf);
-
-    printf("mode = %o\n", (unsigned int)statbuf.st_mode);
+    unlink("linux.sym");
 }
