@@ -4,24 +4,34 @@
 #include<stdio.h>
 
 int main(void){
-    int fd, n;
+    //파일을 읽어 다른 파일에 쓰기
+    int rfd, wfd, n;
     char buf[10];
 
-    fd = open("test.txt", O_RDONLY);
-    if(fd == -1){
-        perror("open");
+    rfd = open("test.txt", O_RDONLY);
+    if(rfd == -1){
+        perror("test.txt");
         exit(1);
     }
 
-    n = read(fd, buf, 4);
+    wfd = open("test.bak", O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    if(wfd == -1){
+        perror("test.bak");
+        exit(1);
+    }
+
+    while((n = read(rfd, buf, 5)) != 0){
+        if(write(wfd, buf, n) != n){
+            perror("write");
+        }
+    }
+
     if(n == -1){
         perror("read");
-        exit(1);
     }
 
-    buf[n] = '\0';
-    printf("n = %d, buf = %s\n", n, buf);
-    close(fd);
+    close(rfd);
+    close(wfd);
 
     exit(0);
 }
