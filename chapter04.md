@@ -16,6 +16,7 @@
 * 132 : 새 파일 생성하기(open(2), close(2))
 * 133 : O_EXCL 플래그 사용하기
 * 135 : 파일 기술자 할당하기
+* 136 : 파일 읽기(read(2))
 ### 4.3 고수준 파일 입출력
 * 000 : ...
 * 000 : ...
@@ -244,21 +245,62 @@ fd : 0
 ```C
 #include<unistd.h>
 
-ssize_t read(int fd, void* buf, size count);
+ssize_t read(int fd, void* buf, size_t count);
 ```
-
-
-
-
-
-
+* 인자 설명
+    * fd : 파일 기술자
+    * buf : 파일에 기록할 데이터를 저장한 메모리 영역
+    * count : buf의 크기(기록할 데이터의 크기)
+* count에 지정한 크기만큼 바이트를 읽어 buf로 지정한 메모리 영역에 저장
+* 성공시 : 읽은 바이트 수 리턴 또는 0을 리턴(파일의 끝에 도달한 경우)
+* 실패시 : -1 리턴
+* 파일을 열었을 때 오프셋이 파일의 시작을 가리킴
+    * read(2)를 실행할 때마다 읽은 크기만큼 오프셋이 이동해 다음 읽을 위치를 가리킴
+* 파일 데이터 종류에 관계없이 무조건 바이트 단위로 읽음
+    * 처리 작업은 프로그래머의 몫임
+#### 예제 136 : 파일 읽기(read(2))
 ```C
+#include<fcntl.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include<stdio.h>
 
+int main(void){
+    int fd, n;
+    char buf[10];
+
+    fd = open("test.txt", O_RDONLY);
+    if(fd == -1){
+        perror("open");
+        exit(1);
+    }
+
+    n = read(fd, buf, 4);
+    if(n == -1){
+        perror("read");
+        exit(1);
+    }
+
+    buf[n] = '\0';
+    printf("n = %d, buf = %s\n", n, buf);
+    close(fd);
+
+    exit(0);
+}
 ```
 ```
 #test.txt
 linux system programming!!!!
 ```
+```
+$ ./main.out
+n = 4, buf = linu
+```
+#### 파일 쓰기 : write(2)
+
+
+
+
 * 136 : 파일 읽기(read(2))
 * 138 : 파일 쓰기(write(2))
 * 140 : 파일 오프셋 위치 지정(lseek(2))
