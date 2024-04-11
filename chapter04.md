@@ -17,6 +17,7 @@
 * 133 : O_EXCL 플래그 사용하기
 * 135 : 파일 기술자 할당하기
 * 136 : 파일 읽기(read(2))
+* 138 : 파일 쓰기(write(2))
 ### 4.3 고수준 파일 입출력
 * 000 : ...
 * 000 : ...
@@ -297,12 +298,67 @@ $ ./main.out
 n = 4, buf = linu
 ```
 #### 파일 쓰기 : write(2)
+```C
+#include<unistd.h>
+
+ssize_t write(int fd, const void* buf, size_t count);
+```
+* 인자 설명
+    * fd : 파일 기술자
+    * buf : 파일에 기록할 데이터를 저장한 메모리 영역
+    * count : buf의 크기(기록할 데이터의 크기)
+* buf가 가리키느 메모리 영역에서 count로 지정한 크기만큼 읽어 쓰기 수행
+* 성공시 : 쓰기를 수행한 바이트 수 리턴
+* 실패시 : -1 리턴
+#### 예제 138 : 파일 쓰기(write(2))
+```C
+#include<fcntl.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(void){
+    //파일을 읽어 다른 파일에 쓰기
+    int rfd, wfd, n;
+    char buf[10];
+
+    rfd = open("test.txt", O_RDONLY);
+    if(rfd == -1){
+        perror("test.txt");
+        exit(1);
+    }
+
+    wfd = open("test.bak", O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    if(wfd == -1){
+        perror("test.bak");
+        exit(1);
+    }
+
+    while((n = read(rfd, buf, 5)) != 0){
+        if(write(wfd, buf, n) != n){
+            perror("write");
+        }
+    }
+
+    if(n == -1){
+        perror("read");
+    }
+
+    close(rfd);
+    close(wfd);
+
+    exit(0);
+}
+```
+```
+$ ./main.out
+$ cat test.bak
+linux system programming!!!!
+```
+### 4.2.4 파일 오프셋 지정
+#### 개요
 
 
-
-
-* 136 : 파일 읽기(read(2))
-* 138 : 파일 쓰기(write(2))
 * 140 : 파일 오프셋 위치 지정(lseek(2))
 * 143 : 파일 기술자 복사(dup(2))
 * 144 : 파일 기술자 복사(dup2(3))
