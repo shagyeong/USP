@@ -1,19 +1,21 @@
-#include<sys/types.h>
 #include<fcntl.h>
 #include<unistd.h>
 #include<stdlib.h>
 #include<stdio.h>
 
+
 int main(void){
-    int fd, n;
-    off_t init, curr;
-    char buf[256];
+    int fd;
+    fd = open("tmp.bbb", O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    if(fd == -1){
+        perror("create");
+        exit(1);
+    }
 
-    fd = open("test.txt", O_RDONLY);
-    
-    init = lseek(fd, 0, SEEK_CUR);
-    n = read(fd, buf, 255);
-    buf[n] = '\0';
+    //1번(표준 출력)으로 tmp.bbb 기술자를 복사하여 추력 방향 전환
+    dup2(fd, 1);
+    printf("dup2 : standard output redirection\n");
 
-    
+    close(fd);
+    exit(1);
 }
