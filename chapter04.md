@@ -20,7 +20,9 @@
 * 138 : 파일 쓰기(write(2))
 * 141 : 파일 오프셋 활용하기(lseek(2))
 * 143 : 파일 기술자 복사하기(입출력 방향 전환하기)(dup(2))
-* 145 : dup2(3) 함수로 파일 기술자를 복사하기
+* 145 : 파일 기술자를 복사하기(dup2(3))
+* 146 : 파일 기술자 제어하기(fcntl(2))
+* 148 : 파일 삭제(remove(3))
 ### 4.3 고수준 파일 입출력
 * 000 : ...
 * 000 : ...
@@ -502,7 +504,7 @@ int dup2(int oldfd, int nwefd);
     * newfd : 복사할 곳
 * dup(2)는 파일기술자를 '자동으로 할당'함
 * dup2(3)는 '지정'할 수 있게 해줌
-#### 예제 145 : dup2(3) 함수로 파일 기술자를 복사하기
+#### 예제 145 : 파일 기술자를 복사하기(dup2(3))
 ```C
 #include<fcntl.h>
 #include<unistd.h>
@@ -551,18 +553,283 @@ int fcntl(int fd, int cmd, .../* arg */);
 * 주요 cmd
     * F_GETFL : 상태 플래그 정보를 읽어옴
     * F_SETFL : 상태 플래그 정보를 설정(대부분 open(2)에서 지정하는 플래그)
-#### 예제 146 : fcntl(2) 함수로 파일 기술자 제어하기(fcntl(2))
+#### 예제 146 : 파일 기술자 제어하기(fcntl(2))
+```C
+#include<sys/types.h>
+#include<fcntl.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include<stdio.h>
 
-* 143 : 파일 기술자 복사(dup(2))
-* 144 : 파일 기술자 복사(dup2(3))
-* 146 : 파일 기술자 제어(fcntl(2))
-* 148 : 파일 삭제(remove(3))
-* 149 : 파일과 디스크 동기화(fsync(3))
+int main(void){
+    int fd, flags;
+    if((fd = open("test.txt", O_RDWR)) == -1){
+        perror("open");
+        exit(1);
+    }
+
+    if((flags = fcntl(fd, F_GETFL)) == -1){
+        perror("fcntl");
+        exit(1);
+    }
+
+    flags |= O_APPEND;
+
+    if(fcntl(fd, F_SETFL, flags) == -1){
+        perror("fcntl");
+        exit(1);
+    }
+
+    if(write(fd, "system programming\n", 19) != 19){
+        perror("write");
+        exit(1);
+    }
+
+    close(fd);
+    exit(0);
+}
+```
+```
+#test.txt
+linux system programming!!!!system programming
+
+```
+### 4.2.7 파일 삭제
+#### 개요
+* 파일을 삭제하려면(파일 시스템에서 하드 링크를 끊으려면) unlink(2)를 사용
+* remove(3) : path에 지정한 파일/디렉터리를 삭제
+    * 파일 : unlink(2) 호출
+    * 디렉터리 : rmdir(2) 호출(비어 있을 경우에만 삭제됨)
+#### 파일 삭제 : remove(3)
+```C
+#include<stdio.h>
+
+int remove(const char* pathname);
+```
+#### 예제 148 : 파일 삭제(remove(3))
+```C
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(void){
+    int ret;
+    if((ret = remove("test.bak")) == -1){
+        perror("remove");
+        exit(1);
+    }
+
+    printf("remove success\n");
+    exit(0);
+}
+```
+```
+$ ./main.out
+remove success
+$ ls test.bak
+ls: 'test.bak'에 접근할 수 없음: 그런 파일이나 디렉터리가 없습니다
+```
+### 4.2.8 파일과 디스크 동기화 함수
+#### 파일과 디스크 동기화 함수 : fsync(3)
+```C
+#include<unistd.h>
+int fsync(int fd);
+```
+* 메모리에 위치하고 있는 파일의 내용을 디스크로 보내 메모리와 디스크의 내용을 동기화함
+* 메모리의 내용이 디스크에 모두 기록되기 전에는 리턴하지 않음
+## 4.3 고수준 파일 입출력
+### 고수준 파일 입출력
+* **'표준 입출력 라이브러리(standard IO library)'**라고도 함
+* C 표준 함수로 제공
+* 저수준 입출력 : 바이트 단위의 입출력(데이터 가공 작업이 필요함)
+* 고수준 입출력 : 문자 단위, 행 단위, 버퍼 단위, 형식 기반 입출력 등 기능이 제공됨
+### 4.3.1 파일 포인터
+#### 파일 포인터
+* **파일 포인터 : 디스크에서 메모리로 읽어온 파일의 위치에 대한 정보를 담고 있는 포인터**
+* 자료형 : FILE*
+#### 파일 구조체
+* 그림 4-2 : 파일 기술자 항목을 포함
+* **파일 포인터 파일 기술자 상호변환 가능**
+* '플랫폼 독립적 구조'로 어느 플랫폼에서든 동일한 동작을 수행함
+### 4.3.2 파일 열기와 닫기
+#### 파일 열기 : fopen(3)
+```C
+#include<stdio.h>
+
+FILE* fopen(const char* pathname, const char* mode)
+```
+* 인자 설명
+    * pathname : 파일의 경로
+    * mode : 파일 열기 모드
+* 성공시 : 열린 파일의 주소를 FILE* 형태로 리턴
+* 실패시 : '0'을 리턴
+#### fopen(3)의 mode
+* read
+    * r : 읽기 전용으로 텍스트 파일을 열기
+    * r+ : 읽기와 쓰기용으로 텍스트 파일 열기
+    * rb : 읽기 전용으로 바이너리 파일을 열기
+    * rb+ : 읽기와 쓰기용으로 바이너리 파일 열기
+* write
+    * w : 새로 쓰기용으로 텍스트 파일을 열기(기존 내용은 삭제됨)
+    * w+ : 쓰기와 읽기용으로 텍스트 파일 열기
+    * wb : 새로 쓰기 용으로 바이너티 파일을 열기(기존 내용은 삭제됨)
+    * wb+ : 쓰기와 읽기용으로 바이너리 파일 열기
+* add
+    * a : 기존 내용의 끝에 추가해서 쓰기용으로 텍스트 파일을 열기
+    * a+ : 추가 쓰기와 읽기용으로 텍스트 파일 열기
+    * ab : 기존 내용의 끝에 추가해서 쓰기용으로 바이넡리 파일을 열기
+    * ab+ : 추가 쓰기와 읽기용으로 바이너리 파일 열기
+#### 파일 닫기 : fclose(3)
+```C
+#include<stdioi.h>
+
+int fclose(FILE* stream);
+```
+* 인자 설명
+    * stream : fopen(3)에서 리턴한 파일 포인터
+* 메모리에 있는 파일 앤용을 디스크에 저장하고 종료
+* 성공시 : 0 리턴
+* 실패시 : EOF(-1) 리턴
+### 4.3.3 문자 기반 입출력
+#### 개요
+* 가장 간단한 고수준 파일 입출력 : 저수준과 같은 방식으로 바이트 단위로 입출력하기
+* 문자 기반 입출력은 데이터를 '바이트 스트림'으로 이해하고 한 바이트씩 처리하는 함수를 제공함
+#### 문자 기반 입력 함수 : fgetc(3), getc(), getchar(), getw(3)
+```C
+#include<stdio.h>
+
+int fgetc(FILE* stream);
+int getc(FILE* stream);
+int getchar(void);
+int getw(FILE* stream);
+```
+* fgetc(3) : 파일로부터 문자 한 개를 unsigned char 형태로 읽어옴
+* getc() : fgetc(3)과 동일, 매크로로 구현되어 있어 더 빠르지만 메모리를 더 차지함
+* getchar() : 표준 입력에서 문자 한 개를 읽어오는 매크로 - getc(stdin)과 같음
+* getw(3) : 파일에서 워드word 단위로 읽어옴
+    * 워드의 크기는 int형의 크기로, 시스템에 따라 달라질 수 있음
+* 문자 입출력 함수에서 오류 발생시 : EOF(-1) 리턴
+* 리턴형이 char가 아닌 int인 이유
+    * -1과 255(10) 구별 불가능
+    * 십진수 255를 char로 해석시 EOF와 같은 형태
+    * -1(2) : 11111111, 255(10) = 11111111(char)
+#### 문자 기반 출력 함수 : fputs(3), putc(), putchar(), putw(3)
+```C
+#include<stdio.h>
+
+int fputc(int c, FILE* stream);
+int putc(int c, FILE* stream);
+int putchar(int c);
+int putw(int w, FILE* stream);
+```
+* 인자 설명
+    * c, w : 출력할 문자
+    * stream : 파일 포인터
+* fputc(3) : 인자로 받은 데이터를 unsigned char로 변환해 파일에 씀
+* putc() : fputc(3)와 같은 동작 수행, getc와 동일하게 매크로로 구현됨
+* putchar() : 표준 출력으로 한 문자를 출력하는 매크로 - putc(c, stdout)과 같음
+* putw(3) : 워드 단위로 파일에 출력
+* 성공시 : 해당 문자값을 리턴
+* 오류시 : EOF(-1) 리턴
+#### 예제 154 : 문자 기반 입출력 함수 사용하기(파일 내용 복사하기)(fopen(3), fclose(3), fgetc(3), fputc(3))
+```C
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(void){
+    FILE* rfp;FILE* wfp;
+    int c;
+
+    if((rfp = fopen("test.txt", "r")) == NULL){
+        perror("read");
+        exit(1);
+    }
+    if((wfp = fopen("test.out", "w")) == NULL){
+        perror("write");
+        exit(1);
+    }
+
+    while((c = fgetc(rfp)) != EOF){
+        fputc(c, wfp);
+    }
+
+    fclose(rfp);
+    fclose(wfp);
+    exit(0);
+}
+```
+### 4.3.4 문자열 기반 입출력
+#### 문자열 기반 입력 함수 : gets(3), fgets(3)
+```C
+#include<stdio.h>
+
+char* gets(const char* s);
+char* fgets(char* s, int size, FILE* stream);
+```
+* 인자 설명
+    * s : 문자열을 저장한 버퍼의 시작 주소
+    * size : 버퍼의 크기
+    * stream : 파일 포인터
+* gets(3) : 표준 입력에서 문자열을 읽어들임
+    * 엔터키 입력 또는 EOF까지
+    * 읽어들인 문자열의 끝에서 개행 문자를 제외하고 '\0'을 채워 버퍼(s)에 저장하고 리턴
+    * s가 확보하고 있는 메모리의 크기를 알 수 없어 s가 가득 찬 후에도 계속 읽을 수 있음
+    * 보안 문제가 생길 수 있으므로 가능하면 사용하지 않는 것이 좋음
+* fgets(3) : 파일 포인터가 가리키는 파일에서 size에 지정한 길이보다 하나 적게 문자열을 읽어 버퍼(s)에 저장
+    * 개행 문자를 만나거나 EOF를 만나면 해당 지점까지만 읽어옴
+    * gets(3)와 달리 개행 문자도 s에 저장하고 마지막 문자 다음에 '\0'을 저장함
+* 성공시 : 버퍼의 시작 주소를 리턴
+* 실패시 : NULL 리턴
+#### 문자열 기반 출력 함수 : puts(3), fuputs(3)
+```C
+#include<stdio.h>
+
+int puts(const char* s);
+int fputs(const char* s, FILE* stream);
+```
+* 인자 설명
+    * s : 문자열 주소
+    * stream : 파일 포인터
+* puts(3) : s가 가리키는 문자열을 개행문자를 추가해 표준 출력으로 출력
+* fputs(3) : 개행 문자를 추가하지 않음
+* 성공시 : 음수가 아닌 수 리턴
+* 파일의 끝 : 오류 리턴
+#### 예제 157 : 문자열 기반 입출력 함수 사용하기(fgets(3), fputs(3))
+```C
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(void){
+    FILE* rfp;FILE* wfp;
+    char buf[BUFSIZ];
+    if((rfp = fopen("test.txt", "r")) == NULL){
+        perror("read");
+        exit(1);
+    }
+    if((wfp = fopen("test.out", "w")) == NULL){
+        perror("write");
+        exit(1);
+    }
+
+    while(fgets(buf, BUFSIZ, rfp) != NULL){
+        fputs(buf, wfp);
+    }
+
+    fclose(rfp);
+    fclose(wfp);
+}
+```
+### 4.3.5 버퍼 기반 입출력
+#### 버퍼 기반 입력 함수
+
+
+
+157 : 문자열 기반 입출력 함수 사용하기(fgets(3), fputs(3))
+
 ### 4.3 고수준 파일 입출력
 * 151 : 파일 열기(fopen(3))
 * 152 : 파일 닫기(fclose(3))
 * 153 : 문자 기반 입력 함수(fgetc(3), getc(), getchar(), getw(3))
-* 154 : fputc 3 putc putchar(putw(3))
+* 154 : 문자 기반 출력 함수(fputc(3), putc(), putchar(), putw(3))
 * 156 : 문자열 기반 입력 함수(gets(3), fgets(3))
 * 157 : 문자열 기반 출력 함수(puts(3), fputs(3))
 * 158 : 버퍼 기반 입력 함수(fread(3))
