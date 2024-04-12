@@ -12,7 +12,7 @@ int main(void){
         exit(1);
     }
 
-    //1번(표준 출력)으로 tmp.bbb 기술자를 복사하여 추력 방향 전환
+    //1번(표준 출력)으로 tmp.bbb 기술자를 복사하여 출력 방향 전환
     dup2(fd, 1);
     printf("dup2 : standard output redirection\n");
 
