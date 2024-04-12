@@ -1,21 +1,22 @@
-#include<fcntl.h>
-#include<unistd.h>
 #include<stdlib.h>
 #include<stdio.h>
 
-
 int main(void){
-    int fd;
-    fd = open("tmp.bbb", O_CREAT | O_WRONLY | O_TRUNC, 0644);
-    if(fd == -1){
-        perror("create");
+    FILE* rfp;FILE* wfp;
+    char buf[BUFSIZ];
+    if((rfp = fopen("test.txt", "r")) == NULL){
+        perror("read");
+        exit(1);
+    }
+    if((wfp = fopen("test.out", "w")) == NULL){
+        perror("write");
         exit(1);
     }
 
-    //1번(표준 출력)으로 tmp.bbb 기술자를 복사하여 출력 방향 전환
-    dup2(fd, 1);
-    printf("dup2 : standard output redirection\n");
+    while(fgets(buf, BUFSIZ, rfp) != NULL){
+        fputs(buf, wfp);
+    }
 
-    close(fd);
-    exit(1);
+    fclose(rfp);
+    fclose(wfp);
 }
