@@ -169,7 +169,7 @@ int main(void){
 * 함수 원형
 ```C
 #include<unistd.h>
-int rmdir(const hcar* pathname)
+int rmdir(const char* pathname)
 ```
 * 예제 067 : 디렉터리 삭제하기
 ```C
