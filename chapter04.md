@@ -19,6 +19,8 @@
 * 136 : 파일 읽기(read(2))
 * 138 : 파일 쓰기(write(2))
 * 141 : 파일 오프셋 활용하기(lseek(2))
+* 143 : 파일 기술자 복사하기(입출력 방향 전환하기)(dup(2))
+* 145 : dup2(3) 함수로 파일 기술자를 복사하기
 ### 4.3 고수준 파일 입출력
 * 000 : ...
 * 000 : ...
@@ -392,9 +394,164 @@ off_t lseek(int fd, off_t offset, int whence);
     ```
 #### 예제 141 : 파일 오프셋 활용하기(lseek(2))
 ```C
+#include<sys/types.h>
+#include<fcntl.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(void){
+    int fd, n;
+    off_t init, curr;
+    char buf[256];
+
+    fd = open("test.txt", O_RDONLY);
+
+    if(fd == -1){
+        perror("open");
+        exit(1);
+    }
+
+    //처음부터 읽기
+    init = lseek(fd, 0, SEEK_CUR);
+    n = read(fd, buf, 255);
+    buf[n] = '\0';
+    printf("offset start : %d, n = %d\n", (int)init, n);
+    printf("read str : %s\n", buf);
+
+    //읽은 후 오프셋의 위치
+    curr = lseek(fd, 0, SEEK_CUR);
+    printf("offset current : %d\n", (int)curr);
+
+    //오프셋 위치 지정하여 파일 읽기
+    curr = lseek(fd, 6, SEEK_SET);
+    n = read(fd, buf, 255);
+    buf[n] = '\0';
+    printf("offset start : %d, n = %d\n", (int)init, n);
+    printf("read str : %s\n", buf);
+
+    close(fd);
+    exit(0);
+}
+```
+```
+$ ./main.out
+offset start : 0, n = 28
+read str : linux system programming!!!!
+offset current : 28
+offset start : 0, n = 22
+read str : system programming!!!!
+```
+### 4.2.5 파일 기술자 복사
+#### 개요
+* open(2)로 파일을 열면 파일 기술자가 할당됨
+* 파일 기술자를 복사해 같은 파일을 가리키는 파일 기술자를 생성할 수 있음
+* dup(2), dup2(3) : 파일 기술자 복사 함수
+#### 파일 기술자 복사 : dup(2)
+```C
+#include<unistd.h>
+
+int dup(int oldfd);
+```
+* 인자 설명
+    * oldfd : 복사할 파일 기술자
+* 기존 파일 기술자를 인자로 받아 새로운 파일 기술자를 리턴
+* **현재 할당할 수 있는 파일 기술자 중 가작 작은 값으로 자동 할당됨**
+* **입출력 방향 전환**에 많이 사용됨
+#### 예제 143 : 파일 기술자 복사하기(입출력 방향 전환하기)(dup(2))
+```C
+#include<fcntl.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(void){
+    int fd1, fd2;
+
+    fd1 = open("tmp.aaa", O_CREAT | O_WRONLY | O_TRUNC | 0644);
+    if(fd1 == -1){
+        perror("create");
+        exit(1);
+    }
+
+    //가장 작은 값(1번)을 할당하여
+    // 출력 방향을 표준 출력에서 파일로 전환
+    close(1);
+    fd2 = dup(fd1);
+    printf("dup fd : %d\n", fd2);
+    printf("standard output redirection\n");
+
+    close(fd1);
+    exit(1);
+}
+```
+```
+#tmp.aaa
+dup fd : 1
+standard output redirection
 
 ```
+#### 파일 기술자 복사 : dup2(3)
+```C
+#include<unistd.h>
 
+int dup2(int oldfd, int nwefd);
+```
+* 인자 설명
+    * oldfd : 복사할 파일 기술자
+    * newfd : 복사할 곳
+* dup(2)는 파일기술자를 '자동으로 할당'함
+* dup2(3)는 '지정'할 수 있게 해줌
+#### 예제 145 : dup2(3) 함수로 파일 기술자를 복사하기
+```C
+#include<fcntl.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include<stdio.h>
+
+
+int main(void){
+    int fd;
+    fd = open("tmp.bbb", O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    if(fd == -1){
+        perror("create");
+        exit(1);
+    }
+
+    //1번(표준 출력)으로 tmp.bbb 기술자를 복사하여 추력 방향 전환
+    dup2(fd, 1);
+    printf("dup2 : standard output redirection\n");
+
+    close(fd);
+    exit(1);
+}
+```
+```
+# tmp.bbb
+dup2 : standard output redirection
+
+```
+### 4.2.6 파일 기술자 제어
+#### 개요
+* 현재 열려 있는 파일에 대한 파일 기술자의 속성을 확인하고 제어할 수 있음
+* fcntl(2)을 이용해 설정한 플래그를 조정할 수 있음
+#### 파일 기술자 제어 : fcntl(2)
+```C
+#include<unistd.h>
+#include<fcntl.h>
+
+int fcntl(int fd, int cmd, .../* arg */);
+```
+* 인자 설명
+    * fd : 파일 기술자
+    * cmd : 명령
+    * arg : cmd에 따라 필요시 지정하는 인자들
+* fd가 가리키는 파일에 cmd로 지정한 명령을 수행
+    * cmd의 종류에 따라 인자를 지정해야 할 수도 있음
+* 주요 cmd
+    * F_GETFL : 상태 플래그 정보를 읽어옴
+    * F_SETFL : 상태 플래그 정보를 설정(대부분 open(2)에서 지정하는 플래그)
+#### 예제 146 : fcntl(2) 함수로 파일 기술자 제어하기(fcntl(2))
 
 * 143 : 파일 기술자 복사(dup(2))
 * 144 : 파일 기술자 복사(dup2(3))
