@@ -2,21 +2,16 @@
 #include<stdio.h>
 
 int main(void){
-    FILE* rfp;FILE* wfp;
-    char buf[BUFSIZ];
-    if((rfp = fopen("test.txt", "r")) == NULL){
-        perror("read");
-        exit(1);
-    }
-    if((wfp = fopen("test.out", "w")) == NULL){
-        perror("write");
+    FILE* rfp; int n;
+    int id, lin, eng, cp;
+    if((rfp = fopen("test.dat", "r")) == NULL){
+        perror("fopen");
         exit(1);
     }
 
-    while(fgets(buf, BUFSIZ, rfp) != NULL){
-        fputs(buf, wfp);
+    while((n = fscanf(rfp, "%d %d %d %d", &id, &lin, &eng, &cp)) != EOF){
+        printf("id : %d, avg = %d\n", id, (lin + eng + cp) / 3);
     }
 
-    fclose(rfp);
-    fclose(wfp);
+    exit(0);
 }
