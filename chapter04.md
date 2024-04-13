@@ -819,11 +819,154 @@ int main(void){
 }
 ```
 ### 4.3.5 버퍼 기반 입출력
-#### 버퍼 기반 입력 함수
+#### 버퍼 기반 입력 함수 : fread(3)
+```C
+#include<stdio.h>
+size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream);
+```
+* 인자 설명
+    * ptr : 버퍼 주소
+    * size : 버퍼 크기
+    * nmemb : 읽어올 항목 수
+    * stream : 파일 포인터
+* 항목의 크기가 size인 데이터를 nmemb에서 지정한 개수만큼 읽어 ptr이 가리키는 버퍼에 저장
+* 성공시 : 읽어온 항목 수 리턴
+* 읽을 항목이 없을시 : 0 리턴
+* 파일의 끝을 만났을시 : EOF 리턴
+#### 예제 159 : 파일 읽기(fread(3))
+```C
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(void){
+    FILE* rfp;
+    char buf[BUFSIZ];
+    int n;
+    if((rfp = fopen("test.txt", "r")) == NULL){
+        perror("read");
+        exit(1);
+    }
+
+    while((n = fread(buf, sizeof(char) * 2, 4, rfp)) > 0){
+        buf[8] = '\0';
+        printf("n = %d, buf = %s\n", n, buf);
+    }
+
+    fclose(rfp);
+    exit(0);
+}
+```
+```
+$ ./main.out
+n = 4, buf = linux sy
+n = 4, buf = stem pro
+n = 4, buf = gramming
+n = 4, buf = !!!!syst
+n = 4, buf = em progr
+n = 3, buf = amming
+r
+```
+#### 버퍼 기반 출력 함수 : fwrite(3)
+```C
+#include<stdio.h>
+
+size_t fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stream);
+```
+* 인자 설명
+    * ptr : 버퍼 주소
+    * size : 항목의 크기
+    * nmemb : 항목 수
+    * stream : 파일 포인터
+* 항목의 크기가 size인 데이터를 nmemb에서 지정한 개수만큼 ptr에서 읽어 stream으로 지정한 파일에 출력
+* 성공시 : 출력한 항목의 수 리턴
+* 실패시 : EOF 리턴
+#### 예제 161 : 파일 출력하기(fwrite(3))
+```C
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(void){
+    FILE* rfp; FILE* wfp;
+    char buf[BUFSIZ];
+    int n;
+    if((rfp = fopen("test.txt", "r")) == NULL){
+        perror("read");
+        exit(1);
+    }
+    if((wfp = fopen("test.out", "a")) == NULL){
+        perror("write");
+        exit(1);
+    }
+
+    while((n = fread(buf, sizeof(char) * 2, 4, rfp)) > 0){
+        fwrite(buf, sizeof(char) * 2, n, wfp);
+    }
+
+    fclose(rfp);
+    fclose(wfp);
+    exit(0);
+}
+```
+### 4.3.6 형식 기반 입출력
+#### 개요
+```
+ID       LIN ENG CP
+2021001 100 85  100
+2021002 95  95  100
+```
+* 위와 같이 형식이 있는 파일 입출력시 유용한 함수가 제공됨
+#### 형식 기반 입력 함수 : scanf(3), fscanf(3)
+```C
+#include<stdio.h>
+int scanf(const char* format, ...);
+int fscanf(FILE* stream, const char* format, ...);
+```
+* 인자 설명
+    * format : 입력 형식(%d, %s 등의 형태)
+    * stream : 파일 포인터
+* scanf(3) : 표준 입력에서 입력을 받음
+* fscanf(3) : 지정한 파일로부터 입력을 받음
+* 성공시 : 읽은 항목의 개수 리턴
+* 실패시
+    * 0 리턴 : 입력값이 형식에 맞지 않거나 너무 빨리 파일의 끝에 도달함
+    * EOF 리턴 : 형식에 맞는지 확인하기 전에 파일의 끝을 만남
+#### 예제 163 : 파일 내용 읽기(fscanf(3))
+```C
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(void){
+    FILE* rfp; int n;
+    int id, lin, eng, cp;
+    if((rfp = fopen("test.dat", "r")) == NULL){
+        perror("fopen");
+        exit(1);
+    }
+
+    while((n = fscanf(rfp, "%d %d %d %d", &id, &lin, &eng, &cp)) != EOF){
+        printf("id : %d, avg = %d\n", id, (lin + eng + cp) / 3);
+    }
+
+    exit(0);
+}
+```
+```
+$ cat test.dat
+2021001 100 85  100
+2021002 95  95  100
+$ sh test.sh
+id : 2021001, avg = 95
+id : 2021002, avg = 96
+```
+#### 형식 기반 출력 함수 : printf(3), fprintf(3)
 
 
 
 157 : 문자열 기반 입출력 함수 사용하기(fgets(3), fputs(3))
+159 : 파일 읽기(fread(3))
+161 : 파일 출력하기(fwrite(3))
+163 : 파일 내용 읽기(fscanf(3))
+
 
 ### 4.3 고수준 파일 입출력
 * 151 : 파일 열기(fopen(3))
