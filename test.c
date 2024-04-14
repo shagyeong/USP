@@ -2,16 +2,38 @@
 #include<stdio.h>
 
 int main(void){
-    FILE* rfp; int n;
-    int id, lin, eng, cp;
-    if((rfp = fopen("test.dat", "r")) == NULL){
+    FILE* fp;
+    int n;
+    long cur;
+    char buf[BUFSIZ];
+    if((fp = fopen("test.txt", "r")) == NULL){
         perror("fopen");
         exit(1);
     }
 
-    while((n = fscanf(rfp, "%d %d %d %d", &id, &lin, &eng, &cp)) != EOF){
-        printf("id : %d, avg = %d\n", id, (lin + eng + cp) / 3);
-    }
+    cur = ftell(fp);
+    printf("current offset : %d\n", (int)cur);
+    n = fread(buf, sizeof(char), 5, fp);
+    buf[n] = '\0';
+    printf("str : %s\n", buf);
 
-    exit(0);
+    fseek(fp, 1, SEEK_CUR);
+    cur = ftell(fp);
+    printf("current offset : %d\n", (int)cur);
+    n = fread(buf, sizeof(char), 6, fp);
+    buf[n] = '\0';
+    printf("str : %s\n", buf);
+
+    fseek(fp, 1, SEEK_CUR);
+    cur = ftell(fp);
+    printf("current offset : %d\n", (int)cur);
+    n = fread(buf, sizeof(char), 11, fp);
+    buf[n] = '\0';
+    printf("str : %s\n", buf);
+
+    rewind(fp);
+    cur = ftell(fp);
+    printf("rewind offset : %d\n", (int)cur);
+
+    fclose(fp);
 }
