@@ -24,14 +24,17 @@
 * 146 : 파일 기술자 제어하기(fcntl(2))
 * 148 : 파일 삭제(remove(3))
 ### 4.3 고수준 파일 입출력
-* 000 : ...
-* 000 : ...
+* 157 : 문자열 기반 입출력 함수 사용하기(fgets(3), fputs(3))
+* 159 : 파일 읽기(fread(3))
+* 161 : 파일 출력하기(fwrite(3))
+* 163 : 파일 내용 읽기(fscanf(3))
+* 164 : 지정한 파일로 출력하기(fprintf(3))
 ### 4.4 파일 기술자와 파일 포인터 변환
-* 000 : ...
-* 000 : ...
+* 172 : 파일 포인터 생성하기(fdopen(3))
+* 173 : 파일 기술자 추출하기(fileno(3))
 ### 4.5 임시 파일 사용
-* 000 : ...
-* 000 : ...
+* 176 : 임시 파일명 만들기(tmpnam(3), mktemt(3))
+* 178 : 임시 파일 생성하기(tmpfile(3), mkstemp(3))
 
 ## 4.1 개요
 ### 파일
@@ -1092,32 +1095,179 @@ int fflush(FILE* stream);
 * 버퍼에 있는 데이터를 파일에 기록함
 * 읽기 전용으로 연 경우 버퍼에 있는 내용을 모두 비움
 * 파일 포인터가 NULL이면 쓰기 전용으로 연 모든 파일에 데이터를 씀
+## 4.4 파일 기술자와 파일 포인터 변환
+### 개요
+* fdopen(3) : 파일 기술자 -> 파일 포인터
+* flieno(3) : 파일 포인터 -> 파일 기술자
+### 파일 포인터 생성 : fdopen(3)
+```C
+#include<stdio.h>
+FILE* fdopen(int fd, const char* mode);
+```
+* 인자 설명
+    * fd : 파일 기술자
+    * mode : 열기 모드
+* mode는 파일 기술자를 열 때와 같은 종류의 값으로 지정해야 함
+    * 예시 : 저수준에서 O_RDONLY로 열고 변환시 'w'로 지정하면 작동하지 않음
+* 성공시 : 파일 포인터 리턴
+* 실패시 : 널 포인터 리턴
+### 예제 172 : 파일 포인터 생성하기(fdopen(3))
+```C
+#include<fcntl.h>
+#include<stdlib.h>
+#include<stdio.h>
 
-157 : 문자열 기반 입출력 함수 사용하기(fgets(3), fputs(3))
-159 : 파일 읽기(fread(3))
-161 : 파일 출력하기(fwrite(3))
-163 : 파일 내용 읽기(fscanf(3))
-164 : 지정한 파일로 출력하기(fprintf(3))
+int main(void){
+    FILE* fp;
+    int fd;
+    char str[BUFSIZ];
+    fd = open("test.txt", O_RDONLY);
+    if(fd == -1){
+        perror("open");
+        exit(1);
+    }
 
-### 4.3 고수준 파일 입출력
-* 151 : 파일 열기(fopen(3))
-* 152 : 파일 닫기(fclose(3))
-* 153 : 문자 기반 입력 함수(fgetc(3), getc(), getchar(), getw(3))
-* 154 : 문자 기반 출력 함수(fputc(3), putc(), putchar(), putw(3))
-* 156 : 문자열 기반 입력 함수(gets(3), fgets(3))
-* 157 : 문자열 기반 출력 함수(puts(3), fputs(3))
-* 158 : 버퍼 기반 입력 함수(fread(3))
-* 160 : 버퍼 기반 출력 함수(fwrite(3))
-* 162 : 형식 기반 입력 함수(scanf(3), fscanf(3))
-* 164 : 형식 기반 출력 함수(printf(3), fprint(3))
-* 166 : 파일 오프셋 이동(fseek(3))
-* 167 : 현재 오프셋 구하기(ftell(3))
-* 167 : 처음 위치로 오프셋 이동(rewind(3))
-* 169 : 파일과 디스크 동기화 함수(fflush(3))
-### 4.4 파일 기술자와 파일 포인터 변환
-* 171 : 파일 포인터 생성(fdopen(3))
-* 173 : 파일 기술자 생성(fileno(3))
-### 4.5 임시 파일 사용
-* 175 : 임시 파일명 생성(tmpnam(3))
-* 175 : 템플릿을 지정한 임시 파일명 생성(mktemp(3))
-* 177 : 임시 파일의 파일 포인터와 파일 기술자 생성(mkstemp(3))
+    fp = fdopen(fd, "r");
+    fgets(str, BUFSIZ, fp);
+    printf("read : %s\n", str);
+
+    fclose(fp);
+    exit(0);
+}
+```
+```
+$  sh test.sh
+read : linux system programming!!!!
+```
+### 파일 기술자 생성 : fileno(3)
+```C
+#include<stdio.h>
+int fileno(FILE* stream);
+```
+### 예제 173 : 파일 기술자 추출하기(fileno(3))
+```C
+#include<unistd.h>
+#include<fcntl.h>
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(void){
+    FILE* fp;
+    int fd, n;
+    char str[BUFSIZ];
+    if((fp = fopen("test.txt", "r")) == NULL){
+        perror("fopen");
+        exit(1);
+    }
+
+    fd = fileno(fp);
+    printf("fd : %d\n", fd);
+
+    n = read(fd, str, BUFSIZ);
+    str[n] = '\0';
+    printf("read : %s", str);
+
+    close(fd);
+    exit(0);
+}
+```
+```
+$ sh test.sh
+fd : 3
+read : linux system programming!!!!
+```
+## 4.5 임시 파일 사용
+### 개요
+* 임시파일명이 동일하지 않도록 생성해야함
+### 4.5.1 임시 파일명 생성
+#### 개요
+* 임시 파일명 생성 함수 : tmpnam(3), mktemp(3)
+* 파일명만 리턴하므로 파일 생성함수로 파일을 생성하여 사용
+#### 임시 파일명 생성 : tmpnam(3)
+```C
+#include<stdio.h>
+char* tmpnam(char* s);
+```
+* 인자 설명
+    * s : 파일명을 저장할 버퍼의 시작 주소
+* 인자가 있을 경우 : 인자가 가리키는 곳에 임시파일명 '저장'
+* 인자가 NULL일 경우 : 임시파일명을 '리턴'
+#### 템플릿을 지정한 임시 파일명 생성 : mktemp(3)
+```C
+#include<stdlib.h>
+char* mktemp(char* template);
+```
+* 인자 설명
+    * template : 임시 파일명의 템플릿
+* 성공시 : 임시 파일의 템플릿을 인자로 받아 임시 파일명으로 변환해 리턴
+* 실패시 : 널 문자열 리턴
+* 템플릿 : X 6개로 마쳐야 함
+#### 예제 176 : 임시 파일명 만들기(tmpnam(3), mktemt(3))
+```C
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+
+int main(void){
+    char* fname1; char* fname2;
+    char fntmp[BUFSIZ];
+    char template[32];
+
+    fname1 = tmpnam(NULL);
+    tmpnam(fntmp);
+    strcpy(template, "/tmp/testXXXXXX");
+    fname2 = mktemp(template);
+
+    printf("tmp file name(tmpnam) : %s\n", fname1);
+    printf("tmp file nmae(tmpnam) : %s\n", fntmp);
+    printf("tmp file nmae(mktemp) : %s\n", fname2);
+}
+```
+```
+$ sh test.sh
+# 보안에 취약한 함수들이므로 경고 메시지가 나올 수 있음
+...
+warning: the use of `tmpnam' is dangerous, better use `mkstemp'
+warning: the use of `mktemp' is dangerous, better use `mkstemp' or `mkdtemp'
+tmp file name(tmpnam) : /tmp/file8I9IVQ
+tmp file nmae(tmpnam) : /tmp/fileEXfxLq
+tmp file nmae(mktemp) : /tmp/testIIsffM
+```
+### 4.5.2 임시 파일의 파일 포인터와 파일 기술자 생성
+#### 개요
+* tmpnam(3), mktemp(3) : 임시 파일 이름만 생성함
+* 임시 파일 대상 입출력 수행을 위해 파일을 열어야 함
+* tmpfile(3), mkstemp(3) : 임시 파일명을 알 필요 없이 파일 포인터, 파일 기술자 리턴
+#### 임시 파일의 파일 포인터와 파일 기술자 생성 : tmpfile(3), mkstemp(3)
+```C
+#include<stdio.h>
+FILE* tmpfile(void);
+#include<stdlib.h>
+int mkstemp(char* template);
+```
+#### 예제 178 : 임시 파일 생성하기(tmpfile(3), mkstemp(3))
+```C
+#include<string.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(void){
+    FILE* fp;
+    int fd;
+    char template[32];
+    int ret;
+
+    fp = tmpfile();
+    fpust("tmep file", fp);
+    fclose(fp);
+
+    strcpy(template, "/tmp/testXXXXXX");
+    fd = mkstemp(template);
+    write(fd, "temp file", 10);
+    close(fd);
+}
+```
+```
+#프로그램 내에서 임시로 생성했다가 종료하므로 결과로 확인할 수 없음
+```
