@@ -959,14 +959,145 @@ id : 2021001, avg = 95
 id : 2021002, avg = 96
 ```
 #### 형식 기반 출력 함수 : printf(3), fprintf(3)
+```C
+#include<stdio.h>
+int printf(const char* format, ...);
+int fprintf(FILE* stream, const char* format, ...);
+```
+* 인자 설명
+    * stream : 파일 포인터
+    * format : 출력 형식
+* printf(3) : 표준 출력으로 출력
+* fprintf(3) : 지정한 파일로 출력
+* 성공시 : 출력한 문자 수 리턴
+* 실패시 : EOF 리턴
+#### 예제 164 : 지정한 파일로 출력하기(fprintf(3))
+```C
+#include<stdlib.h>
+#include<stdio.h>
 
+int main(void){
+    FILE* rfp; FILE* wfp; int n;
+    int id, lin, eng, cp;
+    if((rfp = fopen("test.dat", "r")) == NULL){
+        perror("read");
+        exit(1);
+    }
+    if((wfp = fopen("test.scr", "w")) == NULL){
+        perror("write");
+        exit(1);
+    }
 
+    fprintf(wfp, "학번  평균\n");
+    while((n = fscanf(rfp, "%d %d %d %d", &id, &lin, &eng, &cp)) != EOF){
+        fprintf(wfp, "id : %d, avg = %d\n", id, (lin + eng + cp) / 3);
+    }
+
+    fclose(rfp);
+    fclose(wfp);
+    exit(0);
+}
+```
+```
+$ sh test.sh
+$ cat test.scr
+학번  평균
+id : 2021001, avg = 95
+id : 2021002, avg = 96
+```
+### 4.3.7 파일 오프셋 지정
+#### 파일 오프셋 이동 : fseek(3)
+```C
+#include<stdio.h>
+int fseek(FILE* stream, long offstet, int whence);
+```
+* 인자 설명
+    * stream : 파일 포인터
+    * offset : 이동할 오프셋
+    * whence : 오프셋의 기준 위치
+* lseek(2)와의 차이
+    * lseek(2) : 성공시 변경된 오프셋 리턴
+    * fseek(3) : 성공시 0을 리턴(현재 오프셋을 구하는 함수가 별도로 있음 : ftell(3))
+#### 현재 오프셋 구하기 : ftell(3)
+```C
+#include<stdio.h>
+long ftell(FILE* stream);
+```
+* 성공시 : 인자로 지정한 파일의 현재 오프셋 리턴
+* 실패시 : EOF 리턴
+#### 처음 위치로 오프셋 이동 : rewind(3)
+```C
+#include<stdio.h>
+void rewind(FILE* stream);
+```
+#### 예제 168 : 오프셋 이동하며 읽어서 출력하기(fseek(3), ftell(3), rewind(3))
+```C
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(void){
+    FILE* fp;
+    int n;
+    long cur;
+    char buf[BUFSIZ];
+    if((fp = fopen("test.txt", "r")) == NULL){
+        perror("fopen");
+        exit(1);
+    }
+
+    cur = ftell(fp);
+    printf("current offset : %d\n", (int)cur);
+    n = fread(buf, sizeof(char), 5, fp);
+    buf[n] = '\0';
+    printf("str : %s\n", buf);
+
+    fseek(fp, 1, SEEK_CUR);
+    cur = ftell(fp);
+    printf("current offset : %d\n", (int)cur);
+    n = fread(buf, sizeof(char), 6, fp);
+    buf[n] = '\0';
+    printf("str : %s\n", buf);
+
+    fseek(fp, 1, SEEK_CUR);
+    cur = ftell(fp);
+    printf("current offset : %d\n", (int)cur);
+    n = fread(buf, sizeof(char), 11, fp);
+    buf[n] = '\0';
+    printf("str : %s\n", buf);
+
+    rewind(fp);
+    cur = ftell(fp);
+    printf("rewind offset : %d\n", (int)cur);
+
+    fclose(fp);
+}
+```
+```
+$ sh test.sh
+current offset : 0
+str : linux
+current offset : 6
+str : system
+current offset : 13
+str : programming
+rewind offset : 0
+```
+### 4.3.8 파일과 디스크 동기화 함수 : fflush(3)
+```C
+#include<stdio.h>
+int fflush(FILE* stream);
+```
+* 고수준 입출력 함수는 기본적으로 버퍼의 내용을 디스크로 옮겨 씀
+    * 이를 항상 보장할 수 없으므로 필요한 경우 강제 수행시킴
+* 버퍼에 있는 데이터를 파일에 기록함
+* 읽기 전용으로 연 경우 버퍼에 있는 내용을 모두 비움
+* 파일 포인터가 NULL이면 쓰기 전용으로 연 모든 파일에 데이터를 씀
 
 157 : 문자열 기반 입출력 함수 사용하기(fgets(3), fputs(3))
 159 : 파일 읽기(fread(3))
 161 : 파일 출력하기(fwrite(3))
 163 : 파일 내용 읽기(fscanf(3))
-
+164 : 지정한 파일로 출력하기(fprintf(3))
 
 ### 4.3 고수준 파일 입출력
 * 151 : 파일 열기(fopen(3))
