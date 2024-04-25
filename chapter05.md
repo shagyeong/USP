@@ -13,7 +13,7 @@
 ### 5.2 시스템 정보 검색
 * 193 : 운영체제 정보 검색(uname(2))
 * 196 : 시스템 자원 정보 검색(sysconf(3))
-* 198 : 디렉터리 자원 검색(fpathconf(3), pathconf(3))
+* 198 : 디렉터리 자원 검색(pathconf(3))
 ### 5.3 사용자 정보 검색
 * 000 : ...
 * 000 : ...
@@ -112,4 +112,171 @@ time_t mktime(struct tm* tm);
 char* ctime(const time_t* timep);
 char* asctime(const struct tm* tm);
 size_t strftiem(char* s, size_t max, const char* format, const struct tm* tm);
+```
+
+## 5.2 시스템 정보 검색
+### 개요
+* 리눅스 시스템 정보
+    * 운영체제에 관한 정보
+    * 호스트명 저보
+    * 하드웨어 종류
+* 리눅스 시스템은 하드웨어에 따라 사용할 수 있는 자원의 최댓값이 설정되어 있음
+    * 최대 프로세스 개수
+    * 프로세스 하나에 대한 열 수 있는 최대 파일 개수
+    * 메모리 페이지 크기
+    * ...
+### 5.2.1 운영 체제 기본 정보 검색
+#### uname(1)
+* uname(1) : 시스템에 정보 검색 명령
+```
+$ uname -a
+Linux ********* 6.5.0-28-generic #29~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Thu Apr  4 14:39:20 UTC 2 x86_64 x86_64 x86_64 GNU/Linux
+```
+* 커널명 - 호스트명 - 커널 릴리즈 - 커널 버전 - 하드웨어명 - 프로세서명 - 플랫폼명 - 운영체제명
+#### 운영체제 정보 검색 : uname(2)
+```C
+#include<sys/utsname.h>
+int uname(struct utsname* buf);
+```
+* 인자 설명
+    * buf : utsname 구조체 주소
+* 운영체제 정보를 검색하여 utsname 구조체에 저장함
+* 성공시 : 0 리턴
+* 실패시 : -1 리턴, errno에 오류 코드 지정
+#### utsname 구조체
+* <sys/utsname.h>에 정의되어 있음
+* man -s 2 uname으로 확인 가능
+* 구조체의 각 항목은 문자형 배열임
+* 각 값은 널 정료 문자열(nul terminated string)로 저장됨
+```C
+struct utsname{
+    char sysname[]; //현재 운영체제의 이름
+    char nodename[]; //네트워크를 통해 통신할 때 사용하는 시스템의 이름
+    char release[]; //운영체제의 릴리즈 번호
+    char version[]; //운영체제의 버전 번호
+    char machine  []; //운영체제가 동작하는 하드웨어의 표준 이름(아키텍처)
+};
+```
+#### 예제 193 : 운영체제 정보 검색(uname(2))
+```C
+#include<sys/utsname.h>
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(void){
+    struct utsname uts;
+    if(uname(&uts) == -1){
+        perror("uname");
+        exit(1);
+    }
+
+    printf("sysname : %s\n", uts.sysname);
+    printf("nodename : %s\n", uts.nodename);
+    printf("release : %s\n", uts.release);
+    printf("version : %s\n", uts.version);
+    printf("machine : %s\n", uts.machine);
+
+    exit(0);
+}
+```
+```
+$ sh test.sh
+sysname : Linux
+nodename : *********
+release : 6.5.0-28-generic
+version : #29~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Thu Apr  4 14:39:20 UTC 2
+machine : x86_64
+```
+#### 참고 : BSD 계열, 솔라리스 유닉스 호스트명 검색 함수
+```C
+//BSD 계열
+#include<unistd.h>
+int gethostname(char* name, size_t len);
+int sethostname(const char* name, size_t len);
+// 솔라리스
+#include<sys/systeminfo.h>
+long sysinfo(int comand, char* buf, long count);
+```
+### 5.2.2 시스템 자원 정보 검색
+#### 개요
+* <limits.h>
+    * 하드웨어에 따라 사용할 수 있는 자원의 최댓값
+    * POSIX 표준에 따른 정의 위치
+#### 시스템 자원 정보 검색 : sysconf(3)
+```C
+#include<unistd.h>
+long sysconf(int name);
+```
+* 인자 설명
+    * name : 검색할 정보를 나타내는 상수
+* 시스템 정보를 나타내느 상수를 인자로 받아 설정되어 있는 시스템 자원값/옵션값을 리턴
+* 성공시 : 시스템 자원값/옵션값을 리턴
+* 실패시 : -1 리턴
+#### sysconf(3) 주요 상수값
+* man sysconf로 모든 상수값 확인
+* POSIX.1에서 정의함
+* _SC_ARG_MAX : exec() 계열 함수에 사용하는 인자의 최대 크기
+* _SC_CHILD_MAX : 한 UID에 허용되는 최대 프로세스 개수
+* _SC_HOST_NAME_MAX : 호스트명의 최대 길이
+* _SC_LOGIN_NAME_MAX : 로그인명의 최대 길이
+* _SC_CLK_TCK : 초당 클록 틱 수
+* _SC_OPEN_MAX : 프로세스당 열 수 있는 최대 파일 수
+* _SC_PAGESIZE : 시스템 메모리의 페이지 크기
+* _SC_VERSION : 시스템이 지원하는 POSIX.1의 버전
+#### 예제 196 : 시스템 자원 정보 검색(sysconf(3))
+```C
+#include<unistd.h>
+#include<stdio.h>
+
+int main(void){
+    printf("_SC_ARG_MAX : %ld\n", sysconf(_SC_ARG_MAX));
+    printf("_SC_CLK_TCK : %ld\n", sysconf(_SC_CLK_TCK));
+    printf("_SC_OPEN_MAX : %ld\n", sysconf(_SC_OPEN_MAX));
+    printf("_SC_LOGIN_NAME_MAX : %ld\n", sysconf(_SC_LOGIN_NAME_MAX));
+}
+```
+```
+$ sh test.sh
+_SC_ARG_MAX : 2097152
+_SC_CLK_TCK : 100
+_SC_OPEN_MAX : 8192
+_SC_LOGIN_NAME_MAX : 256
+```
+#### 파일과 디렉터리 자원 검색 : fpathconf(3), pathconf(3)
+```C
+#include<unistd.h>
+long fpathconf(int fd, int name);
+long pathconf(const char* path, int name);
+```
+* 인자 설명
+    * fd : 파일 기술자
+    * path : 파일/디렉터리 경로
+    * name : 검색할 정보를 지정하는 상수
+* fpathconf(3)
+    * 열린 파일의 파일기술자를 인자로 받아 파일과 관련된 자원값 검색
+    * 실패시 : -1 리턴
+* pathonf(3)
+    * 파일/디렉터리 경로를 인자로 받아 자원값 검색
+    * 성공시 : 자원값/옵션값 리턴
+    * 실패시 : -1 리턴
+#### fpathconf(3), pathconf(3) 주요 상수
+* _PC_LINK_MAX : 파일에 가능한 최대 링크 수
+* _PC_NAME_MAX : 파일명에 최대 길이를 바이트 크기로 푯
+* _PC_PATH_MAX : 상대 경로명의 최대 길이를 바이트로 표시
+#### 예제 198 : 디렉터리 자원 검색(pathconf(3))
+```C
+#include<unistd.h>
+#include<stdio.h>
+
+int main(void){
+    printf("_PC_LINK_MAX : %ld\n", pathconf(".", _PC_LINK_MAX));
+    printf("_PC_NAME_MAX : %ld\n", pathconf(".", _PC_NAME_MAX));
+    printf("_PC_PATH_MAX : %ld\n", pathconf(".", _PC_PATH_MAX));
+}
+```
+```
+$ sh test.sh
+_PC_LINK_MAX : 65000
+_PC_NAME_MAX : 255
+_PC_PATH_MAX : 4096
 ```
