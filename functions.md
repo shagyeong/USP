@@ -85,5 +85,17 @@
 * 192 : 운영체제 정보 검색(uname(2))
 * 195 : 시스템 자원 정보 검색(sysconf(3))
 * 197 : 파일과 디렉터리 자원 검색(fpathconf(3), pathconf(3))
+### 5.3 사용자 정보 검색
+* 199 : 로그인명 검색(getlogin(3))
+* 200 : UID 검색(getuid(2), geteuid(2))
+* 203 : UID로 /etc/passwd 파일 읽기(getpwuid(3))
+* 205 : 이름으로 passwd 파일 읽기(getpwnam(3))
+* 206 : /etc/passwd 파일을 순차적으로 읽기(getpwent(3), setpwent(3), endpwent(3), fgetpwent(3))
+* 209 : /etc/shadow 파일 검색(getspnam(3))
+* 210 : /etc/shadow 파일을 순차적으로 읽기(etspent(3), setspent(3), endspent(3), fgetspent(3))
+* 212 : 그룹 ID 검색하기(getgid(2), getegid(2))
+* 214 : /etc/group 파일 검색(etgrnam(3), getgrgid(3))
+* 216 : /etc/group 파일을 순차적으로 읽기(getgrent(3), setgrent(3), endgrent(3), fgetgrent(3))
+* 219 : /var/log/utmp 파일을 순차적으로 읽기(getutent(3), setutent(3), endutent(3), utmpname(3))
 ## 6장 프로세스 정보
 ## 7장 프로세스 생성과 실행
