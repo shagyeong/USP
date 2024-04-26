@@ -15,8 +15,16 @@
 * 196 : 시스템 자원 정보 검색(sysconf(3))
 * 198 : 디렉터리 자원 검색(pathconf(3))
 ### 5.3 사용자 정보 검색
-* 000 : ...
-* 000 : ...
+* 200 : 로그인명, UID 검색(getlogin(3), getuid(2), geteuid(2))
+* 204 : 사용자 이름 검색(getpwuid(3))
+* 205 : 사용자 정보 검색(getpwname(3))
+* 206 : 특정 사용자 정보 읽기(getpwent(3))
+* 210 : 사용자 패스워드 정보 검색하기(getspname(3))
+* 211 : 패스워드 정보 검색(getspent(3))
+* 212 : GID, EGID 검색(getgid(2), getegid(2))
+* 215 : 그룹 정보 검색(getgrnam(3))
+* 216 : 그룹 정보 읽기(getgrent(3))
+* 220 : 로그인명과 터미널 정보 출력(getutent(3))
 ### 5.4 시간 관리 함수
 * 000 : ...
 * 000 : ...
@@ -209,7 +217,7 @@ long sysconf(int name);
 ```
 * 인자 설명
     * name : 검색할 정보를 나타내는 상수
-* 시스템 정보를 나타내느 상수를 인자로 받아 설정되어 있는 시스템 자원값/옵션값을 리턴
+* 시스템 정보를 나타내는 상수를 인자로 받아 설정되어 있는 시스템 자원값/옵션값을 리턴
 * 성공시 : 시스템 자원값/옵션값을 리턴
 * 실패시 : -1 리턴
 #### sysconf(3) 주요 상수값
@@ -279,4 +287,458 @@ $ sh test.sh
 _PC_LINK_MAX : 65000
 _PC_NAME_MAX : 255
 _PC_PATH_MAX : 4096
+```
+
+## 5.3 사용자 정보 검색
+### 개요
+* 리눅스 사용자 정보
+    * 각 사용자에 관한 정보
+    * 그룹에 관한 정보
+    * 로그인 기록 정보
+* 관련 파일
+    * 패스워드 파일(/etc/passwd)
+    * 섀도우 파일(/etc/shadow)
+    * 그룹 파일(/etc/group)
+    * 로그인 기록 파일(/var/run/utmp)
+### 5.3.1 로그인명과 UID 검색
+#### 개요
+* 사용자 게정 등록시 '로그인명'과 '사용자 ID'가 지정됨
+* 로그인명 검색 : getlogin(3)
+* 사용자 ID(UID) 검색 : getuid(2), geteuid(2)
+#### 로그인명 검색 : getlogin(3)
+```C
+#include<unistd.h>
+char* getlogin(void);
+```
+* /var/run/utmp 파일을 검색하여 현재 프로세스를 실행한 사용자의 '로그인명'을 찾아 리턴
+* 실행자가 로그아웃했거나 rsh(remote shell)등으로 원격에서 실행한 프로세스에서 실행한 경우 사용자명을 찾지 못하고 널 포인터를 리턴
+#### UID 검색 : getuid(2)/geteuid(2)
+```C
+#include<unistd.h>
+#include<sys/types.h>
+uid_t getuid(void); //실제 사용자 ID 리턴
+uid_t geteuid(void); //유효 사용자 ID 리턴
+```
+* 실제 사용자 ID(RUDI(real UID)) : 로그인시 사용한 '로그인명'에 대응하는 '사용자 ID'로, 프로그램을 실행하는 사용자를 나타냄
+* 유효 사용자 ID(EUID(effective UID)) : 프로세스에 대한 접근 권한을 부여할 때 사용, setuid(2)가 설정된 프로그램을 실행하거나 다른 사용자 ID로 변경할 경우 EUID가 달라짐
+#### 예제 200 : 로그인명, UID 검색(getlogin(3), getuid(2), geteuid(2))
+```C
+#include<sys/types.h>
+#include<unistd.h>
+#include<stdio.h>
+
+int main(void){
+    uid_t uid = getuid();
+    uid_t euid = geteuid();
+    char* name = getlogin();
+    
+    printf("uid : %d\n", (int)uid);
+    printf("euid : %d\n", (int)euid);
+    printf("name : %s\n", name);
+}
+```
+```
+$ sh test.sh
+uid : 1000
+euid : 1000
+name : *********
+```
+### 5.3.2 패스워드 파일 검색
+#### /etc/passwd
+* /etc/passwd : 로그인명, UID, GID, 사용자의 홈 디렉터리, 로그인 셸 등 사용자에 관한 기본정보가 들어있음
+* 사용자 정보를 각 행에 저장하며 각 행에는 ':'으로 구분된 정보가 있음
+```
+$ cat /etc/passwd
+(...)
+*********:x:1000:1000:*********,,,:/home/*********:/bin/bash
+```
+* 로그인 ID : 패스워드 : UID : GID : 계정 설명 : 홈 디렉터리 : 로그인 셸
+* 리눅스에서는 사용자 계정 등록시 UID와 같은 값으로 GID 생성
+#### passwd 구조체
+* passwd 구조체 : /etc/passwd 파일의 정보를 읽어오기 위해 사용하는 구조체
+* <pwd.h>에 정의되어 있음
+```C
+struct passwd{
+    char* pw_name;      //로그인명 저장
+    char* pw_passwd;    //암호 저장(최근 대부분의 리눅스는 시스템 암호를 별도의 암호를 별도의 파일(/etc/shadow)에 저장하므로 의미 없음)
+    uid_t pw_uid;       //UID 저장
+    gid_t pw_gid;       //기본 그룹 GID 저장
+    char* pw_gecos;     //사용자 실명이나 기타 정보 저장
+    char* pw_dir;       //홈 디렉터리 저장
+    char* pw_shell;     //로그인 셸 저장
+};
+```
+#### UID로 /etc/passwd 파일 읽기(getpwuid(3))
+```C
+#include<sys/types.h>
+#include<pwd.h>
+struct passwd* getpwuid(uid_t uid);
+```
+* 성공시 : passwd 구조체에 결과를 저장하고 주소를 리턴
+* 실패시 : 널 포인터 리턴
+#### 예제 204 : 사용자 이름 검색(getpwuid(3))
+```C
+#include<unistd.h>
+#include<sys/types.h>
+#include<pwd.h>
+#include<stdio.h>
+
+int main(void){
+    struct passwd* pw = getpwuid(getuid());
+
+    printf("uid : %d\n", (int)((*pw).pw_uid));
+    printf("name : %s\n", (*pw).pw_name);
+}
+```
+```
+$ sh test.sh
+uid : 1000
+name : *********
+```
+#### 이름으로 passwd 파일 읽기 : getpwnam(3)
+```C
+#include<sys/types.h>
+#include<pwd.h>
+struct passwd* getpwnam(const char* name);
+```
+* '로그인명'을 인자로 받아 검색 수행
+* 성공시 : passwd 구조체에 결과를 저장하고 주소를 리턴
+* 실패시 : 널 포인터 리턴
+#### 예제 205 : 사용자 정보 검색(getpwname(3))
+```C
+#include<sys/types.h>
+#include<pwd.h>
+#include<stdio.h>
+
+int main(void){
+    struct passwd*pw = getpwnam("xxxxxxxxx");
+    printf("uid : %d\n", (int)((*pw).pw_uid));
+    printf("home dir : %s\n", (*pw).pw_dir);
+}
+```
+```
+$ sh test.sh
+uid : 1000
+home dir : /home/xxxxxxxxx
+```
+#### /etc/passwd 파일을 순차적으로 읽기(getpwent(3), setpwent(3), endpwent(3), fgetpwent(3))
+```C
+#include<sys/types.h>
+#include<pwd.h>
+struct passwd* getpwent(void);
+void setpwent(void);
+void endpwent(void);
+struct passwd* fgetpwent(FILE* stream);
+```
+* getpwent(3) : /etc/passwd 파일에서 사용자 정보를 순차적으로 읽어오며 파일의 끝을 만나면 널 포인터 리턴
+* setpwent(3) : /etc/passwd 파일 오프셋을 파일의 처음에 놓음
+* endpwent(3) : /etc/passwd 파일을 닫음
+* fgetpwent(3) : 파일 포인터가 가리키는 파일에서 사용자 정보를 읽어옴
+#### 예제 206 : 특정 사용자 정보 읽기(getpwent(3))
+```C
+#include<pwd.h>
+#include<stdio.h>
+
+int main(void){
+    struct passwd* pw;
+    int n;
+
+    for(n = 0; n < 3; n++){
+        pw = getpwent();
+        printf("uid : %d, login name : %s\n", (int)((*pw).pw_uid), (*pw).pw_name);
+    }
+}
+```
+```
+$ sh test.sh
+uid : 0, login name : root
+uid : 1, login name : daemon
+uid : 2, login name : bin
+```
+### 5.3.3 섀도우 파일 검색
+#### 개요
+* 초기 유닉스 : 패스워드 정보를 /etc/passwd에 저장했음
+    * 누구나 읽을 수 있어 보안 문제 발생 가능
+* 현재 대부분의 유닉스/리눅스 시스템 : /etc/shadow에 별도로 저장
+    * root 사용자만 실행 가능
+#### /etc/shadow 파일의 구조
+* 사용자 정보를 각 행에 저장하며 각 행에는 ':'으로 구분된 정보가 있음
+* 로그인명 : 패스워드 : 최종 변경일 : min : max : warn : inactive : expire : flag
+#### spwd 구조체
+* spwd 구조체 : /etc/shadow 파일의 정보를 읽어오기 위해 사용하는 구조체
+* <shadow.h>에 정의되어 있음
+```C
+struct spwd{
+    char* sp_namp;  //로그인명
+    char* sp_pwdp;  //암호화된 패스워드
+    int sp_lstchg;  //last change : 패스워드를 변경한 날짜 정보(1970-01-01부터 일수로 계산해 저장)
+    int sp_min;     //변경된 패스워드를 사용해야 하는 최소 일 수
+    int sp_max;     //현재 패스워드를 사용할 수 있는 최대 일 수
+    int sp_warn;    //패스워드를 변경할 날이 되기 전에 경고를 시작하는 일 수
+    int sp_inact;   //패스워드가 만료된 이후 사용자 계정이 정지될 때까지의 일 수
+    int sp_expire;  //사용자 계정이 만료되는 날짜 정보(1970-01-01부터 일수로 계산해 저장)
+    unsgined int sp_flag; //나중에 사용하기 위해 예약된 공간(현재는 사용하지 않음)
+};
+```
+#### /etc/shadow 파일 검색(getspnam(3))
+```C
+#include<shadow.h>
+struct spwd* getspnam(const char* name);
+```
+* 로그인명을 인자로 지정해 spwd 구조체 주소 리턴
+#### 예제 210 : 사용자 패스워드 정보 검색하기(getspname(3))
+```C
+#include<shadow.h>
+#include<stdio.h>
+
+int main(void){
+    struct spwd* sp = getspnam("shagyeong");
+    printf("namp : %s\n", (*sp).sp_namp);
+    printf("pwdp : %s\n", (*sp).sp_pwdp);
+    printf("lstchg : %ld\n", (*sp).sp_lstchg);
+}
+```
+```
+$ sh test.sh
+namp : *********
+pwdp : $*$***$(...)
+lstchg : *****
+```
+#### /etc/shadow 파일을 순차적으로 읽기(etspent(3), setspent(3), endspent(3), fgetspent(3))
+```C
+struct spwd* getspent(void);
+void setspent(void);
+void endspent(void);
+struct spwd* fgetspent(FILE* stream);
+```
+* getspent(3) : /etc/shadow 파일에서 패스워드 정보를 순차적으로 읽어오며 파일의 끝을 만나면 널 포인터 리턴
+* setspent(3) : /etc/shadow 파일 오프셋을 파일의 처음에 놓음
+* endspent(3) : /etc/shadow 파일을 닫음
+* fgetspent(3) : 파일 포인터가 가리키는 파일에서 패스워드 정보를 읽어옴
+#### 예제 211 : 패스워드 정보 검색(getspent(3))
+```C
+#include<shadow.h>
+#include<stdio.h>
+
+int main(void){
+    struct spwd* sp;
+    int n;
+
+    for(n = 0; n < 3; n++){
+        sp = getspent();
+        printf("login name : %s, pw : %s\n", (*sp).sp_namp, (*sp).sp_pwdp);
+    }
+}
+```
+```
+$ sh test.sh
+login name : root, pw : !
+login name : daemon, pw : *
+login name : bin, pw : *
+```
+### 5.3.4 그룹 정보 검색
+#### 개요
+* 리눅스에서 사용자는 하나 이상의 그룹에 속함
+* 그룹도 사용자와 같이 그룹명, 그룹 ID가 있음
+#### 그룹 ID 검색하기(getgid(2), getegid(2))
+```C
+#include<unistd.h>
+#include<sys/types.h>
+gid_t getgid(void);
+gid_t getegid(void);
+```
+* getgid(2) : 실제 그룹 ID(RGID) 리턴
+* getegid(2) : 유효 그룹 ID(EGID) 리턴
+* EGID는 프로세스 접근 권한을 부여할 때 사용
+#### 예제 212 : GID, EGID 검색(getgid(2), getegid(2))
+```C
+#include<sys/types.h>
+#include<unistd.h>
+#include<stdio.h>
+
+int main(void){
+    gid_t gid = getgid();
+    gid_t egid = getegid();
+
+    printf("gid : %d, egid : %d\n", (int)gid, (int)egid);
+}
+```
+```
+$ sh test.sh
+gid : 1000, egid : 1000
+```
+### 5.3.5 그룹 정보 검색
+#### 개요
+* 그룹 정보를 /etc/group 파일에 별도로 저장
+* 기본 그룹 : /etc/passwd 파일의 GID 항목
+* 2차 그룹 : /etc/group 파일에서 지정
+#### /etc/group 파일의 구조
+* 그룹 정보를 각 행에 저장하며 각 행에는 ':'으로 구분된 정보가 있음
+#### group 구조체
+* group 구조체 : 그룹 정보 검색을 위해 사용하는 구조체
+* <grp.h>에 정의되어 있음
+```C
+struct group{
+    char* gr_name;      //그룹명
+    char* gr_passwd;    //그룹 패스워드
+    gid_t gr_gid;       //그룹 ID 번호
+    char** gr_mem;       //그룹 멤버인 로그인명을 저장(문자열을 가리킴)
+};
+```
+* 그룹 패스워드
+    * 일반적으로 공백임
+    * 그룹 패스워드 지정시 (사용자 패스워드처럼) 암호화된 문자가 저장됨
+    * 그룹 패스워드를 설정하는 명령이 없어 사용자 패스워드 파일에서 복사해 삽입해야 함
+    * 그룹 패스워드가 지정되어 있으면 newgrp 명령을 사용해 다른 그룹으로 변경시 이 패스워드를 입력해야 함
+#### /etc/group 파일 검색(etgrnam(3), getgrgid(3))
+```C
+#include<sys/types.h>
+#include<grp.h>
+struct group* getgrnam(const char* name);
+struct group* getgrgid(gid_t gid);
+```
+* getgrnam(3) : 그룹명으로 그룹 정보 검색
+* getgrgid(3) : GID로 그룹 정보 검색
+* group 구조체에 결과 저장 후 주소 리턴
+#### 예제 215 : 그룹 정보 검색(getgrnam(3))
+```C
+#include<grp.h>
+#include<stdio.h>
+
+int main(void){
+    struct group* grp =getgrnam("adm");;
+    int n = 0;
+
+    printf("group name : %s\n", (*grp).gr_name);
+    printf("gid : %d\n", (int)((*grp).gr_gid));
+
+    printf("members\n");
+    while((*grp).gr_mem[n] != NULL)
+        printf("%s ", (*grp).gr_mem[n++]);
+    printf("\n");
+}
+```
+```
+$ sh test.sh
+group name : adm
+gid : 4
+members
+syslog ********* 
+```
+#### /etc/group 파일을 순차적으로 읽기(getgrent(3), setgrent(3), endgrent(3), fgetgrent(3))
+```C
+#include<sys/types.h>
+#include<grp.h>
+struct group* getgrent(void);
+void setgrent(void);
+void endgren(void);
+struct group* fgetgrent(FILE* stream);
+```
+* getgrent(3) : /etc/group 파일에서 그룹 정보를 순차적으로 읽어오며 파일의 끝을 만나면 널 포인터 리턴
+* setgrent(3) : /etc/group 파일 오프셋을 파일의 처음에 놓음
+* endgren(3) : /etc/group 파일을 닫음
+* fgetgrent(3) : 파일 포인터가 가리키는 파일에서 그룹 정보를 읽어옴
+#### 예제 216 : 그룹 정보 읽기(getgrent(3))
+```C
+#include<grp.h>
+#include<stdio.h>
+
+int main(void){
+    struct group* grp;
+    int n, m;
+
+    for(n = 0; n < 3; n++){
+        grp = getgrent();
+        printf("group name :%s, gid : %d ", grp->gr_name, (int)grp->gr_gid);
+
+        m = 0;
+        printf("members : ");
+        while(grp->gr_mem[m] != NULL)
+            printf("%s ", grp->gr_mem[m++]);
+        printf("\n");
+    }
+}
+```
+```
+$ sh test.sh
+group name :root, gid : 0 members : 
+group name :daemon, gid : 1 members : 
+group name :bin, gid : 2 members : 
+```
+### 5.3.6 로그인 기록 검색
+#### 개요
+* who(1) : 현재 시스템에 로그인한 사용자 정보 검색
+* last(1) : 시스템의 부팅 시각 정보, 사용자 로그인 기록 등 검색
+* /var/run/utmp, /var/log/wtmp : 우분투 리눅스의 로그인 정보 저장 위치
+    * 바이너리 형태로 저장되어 있어 텍스트 편집기로 내용 확인 불가
+    * 파일에서 정보를 읽어오려면 파일 구조체와 관련된 함수가 필요함
+#### utmp 구조체
+* utmp, wtmp 파일은 구조가 같음 - 두 파일을 읽기 위해 utmp 구조체를 사용함
+* <utmp.h>에 정의되어 있음
+```C
+struct utmp{
+    short ut_type;              //현재 읽어온 항목에 저장된 데이터 형식
+    pid_t ut_pid;               //로그인 프로세스의 PID
+    char ut_line[UT_LINESIZE];  //사용자가 로그인한 장치명
+    char ut_id[4];              //터미널 이름이거나 /etc/inittab 파일에서 읽어온 ID
+    char ut_user[UT_NAMESIZE];  //사용자명 저장
+    char ut_host[UT_HOSTSIZE];  //
+    struct exit_status ut_exit; //프로세스가 DEAD_PROCSS인 경우 프로세스의 종료 상태 저장
+    long ut_session;            //해당 정보의 세션 번호
+    struct timeval ut_tv;       //해당 정보를 마지막으로 변경한 시각
+    int32_t ut_addr_v6[4];      //원격 접소간 경우 원격 호스트의 인터넷 주소 저장
+    char __unused[20];          //추후 사용을 위해 예약해둔 부분
+};
+```
+* ut_type 상수
+    * 0(EMPTY) : 빈 항목
+    * 1(RUN_LVL) : 시스템의 런 레벨이 변경되었음을 나타냄
+    * 2(BOOT_TIME) : 시스템 부팅 시각
+    * 3(NEW_TIME) : 시스템 클럭이 변경된 다음의 시간 정보
+    * 4(OLD_TIME) : 시스템 클럭이 변경되기 전의 시간 정보
+    * 5(INIT_PROCESS) : init이 생성한 프로세스임을 나타냄
+    * 6(LOGIN_PROCESS) : 사용자 록인을 위한 세션 리더 프로세스
+    * 7(USER_PROCESS) : 일반 프로세스
+    * 8(DEAD_PROCESS) : 종료한 프로세스
+    * 9(ACCOUNTING) : 사용하지 않는 항목
+* ut_exit : exit_status 구조체에 정보 저장
+    * man -s 5 utmp에서 확인
+    ```C
+    struct exit_status{
+        short e_termination;
+        short e_exit;
+    };
+    ```
+#### /var/log/utmp 파일을 순차적으로 읽기(getutent(3), setutent(3), endutent(3), utmpname(3))
+```C
+#include<utmp.h>
+struct utmp* getutent(void);
+vid setutent(void);
+void endutent(void);
+int utmpname(const char* file);
+```
+* getutent(3) : /var/run/utmp 파일에서 로그인 정보를 순차적으로 읽어오며 파일의 끝을 만나면 널 포인터 리턴
+* setutent(3) : /var/run/utmp 파일 오프셋을 파일의 처음에 놓음
+* endutent(3) : /var/run/utmp 파일을 닫음
+* utmpname(3) : 로그인 정보 파일을 file로 지정한 다른 파일로 변경
+    * 예시 : last(1)에서 사용하는 /var/adm/wtmp로 변경시 사용
+#### 예제 220 : 로그인명과 터미널 정보 출력(getutent(3))
+```C
+#include<sys/types.h>
+#include<utmp.h>
+#include<stdio.h>
+
+int main(void){
+    struct utmp* ut;
+    
+    while((ut = getutent()) != NULL){
+        if(ut->ut_type != USER_PROCESS)
+            continue;
+        printf("%s %s\n", ut->ut_user, ut->ut_line);
+    }
+}
+```
+```
+$ sh test.sh
+********* ****
 ```
