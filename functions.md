@@ -97,5 +97,14 @@
 * 214 : /etc/group 파일 검색(etgrnam(3), getgrgid(3))
 * 216 : /etc/group 파일을 순차적으로 읽기(getgrent(3), setgrent(3), endgrent(3), fgetgrent(3))
 * 219 : /var/log/utmp 파일을 순차적으로 읽기(getutent(3), setutent(3), endutent(3), utmpname(3))
+### 5.4 시간 관리 함수
+* 221 : 초 단위로 현재 시간 정보 얻기(time(2))
+* 222 : 마이크로초 단위로 시간 정보 얻기(gettimeofday(3))
+* 224 : 시간대 설정(tzset(3))
+* 227 : 초 단위 시간 정보 분해(gmtime(3), localtime(3))
+* 228 : 초 단위 시간으로 역산(mktime(3))
+* 230 : 초 단위 시간을 변환하여 출력하기(ctime(3))
+* 231 : tm 구조체 시간을 변환하여 출력하기(asctime(3))
+* 232 : 출력 형식 기호를 사용하여 출력하기(strftime(3))
 ## 6장 프로세스 정보
 ## 7장 프로세스 생성과 실행
