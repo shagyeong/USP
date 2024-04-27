@@ -312,7 +312,7 @@ char* getlogin(void);
 ```
 * /var/run/utmp 파일을 검색하여 현재 프로세스를 실행한 사용자의 '로그인명'을 찾아 리턴
 * 실행자가 로그아웃했거나 rsh(remote shell)등으로 원격에서 실행한 프로세스에서 실행한 경우 사용자명을 찾지 못하고 널 포인터를 리턴
-#### UID 검색 : getuid(2)/geteuid(2)
+#### UID 검색 : getuid(2), geteuid(2)
 ```C
 #include<unistd.h>
 #include<sys/types.h>
@@ -368,7 +368,7 @@ struct passwd{
     char* pw_shell;     //로그인 셸 저장
 };
 ```
-#### UID로 /etc/passwd 파일 읽기(getpwuid(3))
+#### UID로 /etc/passwd 파일 읽기 : getpwuid(3)
 ```C
 #include<sys/types.h>
 #include<pwd.h>
@@ -421,7 +421,7 @@ $ sh test.sh
 uid : 1000
 home dir : /home/xxxxxxxxx
 ```
-#### /etc/passwd 파일을 순차적으로 읽기(getpwent(3), setpwent(3), endpwent(3), fgetpwent(3))
+#### /etc/passwd 파일을 순차적으로 읽기 : getpwent(3), setpwent(3), endpwent(3), fgetpwent(3)
 ```C
 #include<sys/types.h>
 #include<pwd.h>
@@ -480,7 +480,7 @@ struct spwd{
     unsgined int sp_flag; //나중에 사용하기 위해 예약된 공간(현재는 사용하지 않음)
 };
 ```
-#### /etc/shadow 파일 검색(getspnam(3))
+#### /etc/shadow 파일 검색 : getspnam(3)
 ```C
 #include<shadow.h>
 struct spwd* getspnam(const char* name);
@@ -504,7 +504,7 @@ namp : *********
 pwdp : $*$***$(...)
 lstchg : *****
 ```
-#### /etc/shadow 파일을 순차적으로 읽기(etspent(3), setspent(3), endspent(3), fgetspent(3))
+#### /etc/shadow 파일을 순차적으로 읽기 : etspent(3), setspent(3), endspent(3), fgetspent(3)
 ```C
 struct spwd* getspent(void);
 void setspent(void);
@@ -540,7 +540,7 @@ login name : bin, pw : *
 #### 개요
 * 리눅스에서 사용자는 하나 이상의 그룹에 속함
 * 그룹도 사용자와 같이 그룹명, 그룹 ID가 있음
-#### 그룹 ID 검색하기(getgid(2), getegid(2))
+#### 그룹 ID 검색하기 : getgid(2), getegid(2)
 ```C
 #include<unistd.h>
 #include<sys/types.h>
@@ -590,7 +590,7 @@ struct group{
     * 그룹 패스워드 지정시 (사용자 패스워드처럼) 암호화된 문자가 저장됨
     * 그룹 패스워드를 설정하는 명령이 없어 사용자 패스워드 파일에서 복사해 삽입해야 함
     * 그룹 패스워드가 지정되어 있으면 newgrp 명령을 사용해 다른 그룹으로 변경시 이 패스워드를 입력해야 함
-#### /etc/group 파일 검색(etgrnam(3), getgrgid(3))
+#### /etc/group 파일 검색 : etgrnam(3), getgrgid(3)
 ```C
 #include<sys/types.h>
 #include<grp.h>
@@ -625,7 +625,7 @@ gid : 4
 members
 syslog ********* 
 ```
-#### /etc/group 파일을 순차적으로 읽기(getgrent(3), setgrent(3), endgrent(3), fgetgrent(3))
+#### /etc/group 파일을 순차적으로 읽기 : getgrent(3), setgrent(3), endgrent(3), fgetgrent(3)
 ```C
 #include<sys/types.h>
 #include<grp.h>
@@ -709,7 +709,7 @@ struct utmp{
         short e_exit;
     };
     ```
-#### /var/log/utmp 파일을 순차적으로 읽기(getutent(3), setutent(3), endutent(3), utmpname(3))
+#### /var/log/utmp 파일을 순차적으로 읽기 : getutent(3), setutent(3), endutent(3), utmpname(3)
 ```C
 #include<utmp.h>
 struct utmp* getutent(void);
@@ -742,3 +742,44 @@ int main(void){
 $ sh test.sh
 ********* ****
 ```
+
+## 5.4 시간 관리 함수
+### 개요
+* 리눅스 시스템의 시간 정보 : 1970-01-01 00:00:00부터 현재까지 경과한 시간을 초 단위로 저장하고 이를 기준으로 시간 정보를 관리함
+### 5.4.1 기본 시간 정보 확인
+#### 초단위로 현재 시간 정보 얻기 : time(2)
+```C
+#include<time.h>
+time_t time(time_t* tloc);
+```
+* 인자 설명
+    * tloc : 검색한 시간 정보를 저장할 주소
+* 1970-01-01 00:00:00부터 현재까지 경과된 시간을 초 단위로 알려줌
+* 성공시
+    * tloc이 NULL이 아날 때 : tloc이 가리키는 주소에 시간 정보를 저장
+    * tloc이 NULL일 때 : 시간 정보를 리턴
+* 실패시 : -1 리턴
+#### 예제 222 : 초 단위 시간 정보 얻기(time(2))
+```C
+#include<sys/types.h>
+#include<time.h>
+#include<stdio.h>
+
+int main(void){
+    time_t tloc;
+    time(&tloc);
+    printf("time : %d\n", (int)tloc);
+}
+```
+```
+$ sh test.sh
+time : 1*********
+```
+
+* 222 : 마이크로초 단위로 시간 정보 얻기(gettimeofday(3))
+* 224 : 시간대 설정(tzset(3))
+* 227 : 초 단위 시간 정보 분해(gmtime(3), localtime(3))
+* 228 : 초 단위 시간으로 역산(mktime(3))
+* 230 : 초 단위 시간을 변환하여 출력하기(ctime(3))
+* 231 : tm 구조체 시간을 변환하여 출력하기(asctime(3))
+* 232 : 출력 형식 기호를 사용하여 출력하기(strftime(3))
