@@ -1,9 +1,9 @@
-#include<sys/types.h>
-#include<time.h>
+#include<sys/time.h>
 #include<stdio.h>
 
 int main(void){
-    time_t tloc;
-    time(&tloc);
-    printf("time : %d\n", (int)tloc);
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    printf("tv_sec : %d\n", (int)tv.tv_sec);
+    printf("tv_usec : %d\n", (int)tv.tv_usec);
 }
