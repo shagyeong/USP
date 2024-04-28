@@ -775,11 +775,55 @@ int main(void){
 $ sh test.sh
 time : 1*********
 ```
+#### 마이크로초 단위로 시간 정보 얻기 : gettimeofday(3)
+```C
+#include<sys/time.h>
+int gettimeofday(struct timeval* tv, struct timzzone* tz);
+int settimeofday(const struct timeval* tv, const struct timezone* tz);
+```
+* 인자 설명
+    * tv : 시간 정보 구조체 주소
+    * tz : 시간대 정보 구조체 주소 - 사용하지 않으므로 NULL로 지정해도 됨
+* gettimeofday(3)
+    * tv가 NULL이면 시간 정보를 읽어올 수 있음
+    * 성공시 : timeval 구조체에 저장하고 0 리턴
+    * 실패시 : -1 리턴
+* settimeofday(3)
+    * 시간을 설정함
+    * root 권한으로 실행해야 함
+#### timeval 구조체
+```C
+struct tiimeval{
+    time_t tv_sec; //초
+    susecodns_t tv_usec; //마이크로초
+}
+```
+#### 예제 223 : 마이크로초 단위 시간 정보 얻기(gettimeofday(3))
+```C
+#include<sys/time.h>
+#include<stdio.h>
 
-* 222 : 마이크로초 단위로 시간 정보 얻기(gettimeofday(3))
+int main(void){
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    printf("tv_sec : %d\n", (int)tv.tv_sec);
+    printf("tv_usec : %d\n", (int)tv.tv_usec);
+}
+```
+```
+$ sh test.sh
+tv_sec : 1*********
+tv_usec : 5*****
+# 마이크로초의 값은 소수점 아래 값임
+```
+
 * 224 : 시간대 설정(tzset(3))
 * 227 : 초 단위 시간 정보 분해(gmtime(3), localtime(3))
 * 228 : 초 단위 시간으로 역산(mktime(3))
 * 230 : 초 단위 시간을 변환하여 출력하기(ctime(3))
 * 231 : tm 구조체 시간을 변환하여 출력하기(asctime(3))
 * 232 : 출력 형식 기호를 사용하여 출력하기(strftime(3))
+
+
+222 : 초 단위 시간 정보 얻기(time(2))
+223 : 마이크로초 단위 시간 정보 얻기(gettimeofday(3))
