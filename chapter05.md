@@ -26,8 +26,14 @@
 * 216 : 그룹 정보 읽기(getgrent(3))
 * 220 : 로그인명과 터미널 정보 출력(getutent(3))
 ### 5.4 시간 관리 함수
-* 000 : ...
-* 000 : ...
+* 222 : 초 단위 시간 정보 얻기(time(2))
+* 223 : 마이크로초 단위 시간 정보 얻기(gettimeofday(3))
+* 225 : 지역 시간대 설정하기(tzset(3))
+* 227 : 초 단위 시간 분해(gmtime(3), localtime(3))
+* 229 : 시간을 초 단위로 변환(mktime(3))
+* 230 : 초 단위 시간 변환(ctime(3))
+* 232 : 구조체 시간을 변환하여 출력하기(asctime(3))
+* 234 : 시간 출력 형식 지정하기(strftime(3))
 
 ## 5.1 개요
 ### 개요
@@ -816,14 +822,245 @@ tv_sec : 1*********
 tv_usec : 5*****
 # 마이크로초의 값은 소수점 아래 값임
 ```
+### 5.4.2 시간대 정보
+#### 개요
+* 환경 변수 TZ : 리눅스의 기본 시간대 정보 설정
+    * /etc/default/init 파일에 'TZ=ROK' 형태로 저장되어 있음
+    * 그리니치 표준시 기준으로 각 지역의 시차가 정해짐
+#### 시간대 설정 : tzset(3)
+```C
+#include<time.h>
+void tzset(void);
+```
+* 현재 지역의 시간대로 설정함
+* tzset(3) 호출시 전역 변수에 정보가 설정됨
+```C
+extern char* tzname[2]; //지역 시간대와 보정된 시간대명을 약어로 저장함
+extern long timezone;   //UTC와 지역 시간대와의 시차를 초 단위로 저장함
+extern int daylight;    //서머타임제 시행시 0이 아님, 미시행시 0
+```
+#### 참고 : 서머타임제
+* 서머타임제(일광 절약 시간제) : 해가 길어지는 하절기에 시간대를 빠르게 설정하여 해가 떠 있는 시간을 더 오래 사용하는 방식
+* 예시 : 실제로 6시일 때 시간대를 7시로 설정 - 조정된 시간대가 6시일 때 실제로 5시이므로 해가 떠 있는 시간을 더 활용할 수 있음
+* 우리나라는 1987, 1988년 시행한 적이 있고 현재는 시행하지 않음
+    * KST(Korean standard time) : UTC +9 - 한국 표준시
+    * KDT(Korean daylight time) : UTC +10 - 한국 일광 절약 시간제(사용하지 않음)
+#### 예제 225 : 지역 시간대 설정하기(tzset(3))
+```C
+#include<time.h>
+#include<stdio.h>
 
-* 224 : 시간대 설정(tzset(3))
-* 227 : 초 단위 시간 정보 분해(gmtime(3), localtime(3))
-* 228 : 초 단위 시간으로 역산(mktime(3))
-* 230 : 초 단위 시간을 변환하여 출력하기(ctime(3))
-* 231 : tm 구조체 시간을 변환하여 출력하기(asctime(3))
-* 232 : 출력 형식 기호를 사용하여 출력하기(strftime(3))
+int main(void){
+    tzset();
+    printf("timezone : %d\n", (int)__timezone);
+    printf("daylight : %d\n", __daylight);
+    printf("tzname[0] : %s\n", __tzname[0]);
+    printf("tzname[1] : %s\n", __tzname[1]);
+}
+```
+```
+$ sh test.sh
+timezone : -32400 #32400초는 9시간임
+daylight : 1
+tzname[0] : KST
+tzname[1] : KDT
+```
+### 5.4.3 시간의 형태 변환
+#### 개요
+* time(2), gettimeofday(3) : 초 단위의 시간으로 현재 시간 파악이 어려움
+* 시간의 출력 형태를 변환하는 함수가 제공됨
+#### 시간 정보 분해 : tm 구조체
+* tm 구조체 : 초 단위 시간 정보를 분해할 때 사용하는 구조체
+* <time.h>에 정의되어 있음
+```C
+struct tm{
+    int tm_sec; //초(0 ~ 60)
+    int tm_min; //분(0 ~ 59)
+    int tm_hour;//시(0 ~ 23)
+    int tm_mday;//일(1 ~31)
+    int tm_mon; //월(0(1월) ~ 11(12월))
+    int tm_year;//연도(연도 - 1900)을 리턴
+    int tm_wday;//요일(0(일) ~ 6(토))
+    int tm_yday;//일 수(0 ~ 365)
+    int tm_isdst//서머타임제 시행 여부(1이면 실시 중)
+};
+```
+* 출력시 적절한 처리 과정을 거치는 것이 좋음
+#### 초 단위 시간 정보 분해 : gmtime(3), localtime(3)
+```C
+#include<time.h>
+struct tm* gmtime(const time_t* timep);
+struct tm* localtime(const time_t* timep);
+```
+* 인자 설명
+    * timep : 초 단위 시간 정보를 저장한 주소
+    * time_t는 time(2)의 리턴형임
+* gmtime(3) : 표준시간대 기준 시간 분해
+* localtime(3) : 지역 시간대기준 시간 분해
+#### 예제 227 : 초 단위 시간 분해(gmtime(3), localtime(3))
+```C
+#include<time.h>
+#include<stdio.h>
 
+int main(void){
+    struct tm* tm;
+    time_t timep;
 
-222 : 초 단위 시간 정보 얻기(time(2))
-223 : 마이크로초 단위 시간 정보 얻기(gettimeofday(3))
+    time(&timep);
+
+    tm = gmtime(&timep);
+    printf("UTC : %d-%d-%d %d:%d:%d\n", tm->tm_year + 1900, tm->tm_mon, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+    tm = localtime(&timep);
+    printf("KST : %d-%d-%d %d:%d:%d\n", tm->tm_year + 1900, tm->tm_mon, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+}
+```
+```
+$ sh test.sh
+UTC : YYYY-MM-DD 0:MM:ss
+KST : YYYY-MM-DD 9:MM:ss
+```
+#### 초 단위 시간으로 역산 : mktime(3)
+```C
+#include<time.h>
+time_t mktime(struct tm* tm);
+```
+* tm 구조체 시간을 인자로 받아 UTC 1970-01-01 00:00:00부터 경과된 시간을 초 단위로 계산해 리턴함
+#### 예제 229 : 시간을 초 단위로 변환(mktime(3))
+```C
+#include<time.h>
+#include<stdio.h>
+
+int main(void){
+    struct tm tm;
+    time_t timep;
+    time(&timep);
+
+    tm.tm_year = yyy;
+    tm.tm_mon = mm;
+    tm.tm_mday = dd;
+    tm.tm_hour = hh;
+    tm.tm_min = mm;
+    tm.tm_sec = ss;
+
+    timep = mktime(&tm);
+    printf("%d\n", (int)timep);
+}
+```
+```
+$ sh test.sh
+1*********
+```
+### 5.4.4 형식 지정 시간 출력
+#### 초 단위 시간을 변환하여 출력하기 : ctime(3)
+```C
+#include<time.h>
+char* ctime(const time_t* timep);
+```
+* 초 단위 시간을 인자로 받아 사람이 보기 편한 형태로 변환해 문자열로 리턴
+    * Mon Jan dd hh:mm:ss yyyy 형태(asctime(3)와 같음)
+#### 예제 230 : 초 단위 시간 변환(ctime(3))
+```C
+#include<time.h>
+#include<stdio.h>
+
+int main(void){
+    time_t timep;
+    time(&timep);
+    printf("%s\n", ctime(&timep));
+}
+```
+```
+$ sh test.sh
+Mon **** ** **:**:** ****
+```
+#### tm 구조체 시간을 변환하여 출력하기 : asctime(3)
+```C
+#include<time.h>
+char* asctime(const struct tm* tm);
+```
+* 구조체로 분해된 시간을 인자로 받아 사람이 보기 편한 형태로 변환해 문자열로 리턴
+    * Mon Jan dd hh:mm:ss yyyy 형태(ctime(3)와 같음)
+#### 예제 232 : 구조체 시간을 변환하여 출력하기(asctime(3))
+```C
+#include<time.h>
+#include<stdio.h>
+
+int main(void){
+    struct tm* tm;
+    time_t timep;
+
+    time(&timep);
+    tm = localtime(&timep);
+
+    printf("%s", asctime(tm));
+}
+```
+```
+$ sh test.sh
+Mon **** ** **:**:** ****
+```
+#### 출력 형식 기호를 사용하여 출력하기 : strftime(3)
+```C
+#include<time.h>
+size_tstrftime(char* s, size_t max, ocnst char* format, const struct tm* tm);
+```
+* 인자 설명
+    * s : 출력할 시간 정보를 저장할 배열 주소
+    * max : 배열 s의 크기
+    * format : 출력 형식을 지정한 문자열
+    * tm : 출력할 시간 정보를 저장한 구조체 주소
+* tm에 해당하는 시간 정보를 format대로 변환해 s가 가리키는 배열에 저장함
+* printf(3)과 유사하게 형식 지정자를 이용해 시간정보를 출력할 수 있음
+#### 시간 정보 출력 형식 지정자
+|기호|기능|기호|기능|
+|---|---|---|---|
+|%a|지역 시간대의 요일명 약자|%A|지역 시간대의 요일명|
+|%b|지역 시간대의 월 이름 약자|%B|지역 시간대의 월 이름|
+|%c|지역 시간대에 적합한 날짜와 시간 표시 형태|%C|세기를 두 자리로 표시(연도 / 100)|
+|%d|날짜(1 ~ 31)|%D|날짜(%m/%d/%y)|
+|%e|날짜(1 ~ 31), 한 자릿수는 공백 추가|%F|%Y-%m-%d|
+|%g|연도(00 ~ 99)|%G|연도(0000 ~ 9999)|
+|%h|지역 시간대 월 이름 약자|%j|일 년 중 날 수(001 ~ 365)|
+|%H|24시간 기준 시간(00 ~23)|%I|12시간 기준 시간(01 ~ 12)|
+|%k|24시간 기준 시간(0 ~23), 한 자릿수는 공백 추가|%l|12시간 기준 시간(01 ~ 12), 한 자릿수는 공백 추가|
+|%m|월(01 ~ 12)|%M|분(00 ~ 59)|
+|%p|AM, PM 표시|%P|am, pm 표시|
+|%r|시간 표시하고 %p 수행|%R|%H:%H 형태로 시간 표시|
+|%s|현재 시간을 초 단위로 표시|%S|초를 십진수로 표시(00 ~ 60)|
+|%t|탭 추가|%T|%H:%M:%S형태로 시간 표시|
+|%n|줄 바꿈|%U|연중 주간 수 표시(00~53), 첫 번째 일요일을 01주의 첫 날로 설정|
+|%u|요일(1(월) ~ 7(일))|%V|ISO 8601 표준 연중 주간 수 표시(01 ~ 53)|
+|%w|요일(0(일) ~ 6(토))|%W|연중 주간 수 표시(00~53), 첫 번째 월요일을 01주의 첫 날로 설정|
+|%x|지역 시간대에 적합한 날짜 표시|%X|지역 시간대에 적합한 시간 표시|
+|%y|연도(00 ~ 99)|%Y|네 자릿수 연도|
+|%z|UTC와 시차 표기|%Z|시간대 이름 약자|
+#### 예제 234 : 시간 출력 형식 지정하기(strftime(3))
+```C
+#include<time.h>
+#include<stdio.h>
+
+char* op[] = {"%x %X", "%G년 %m월 %d일 %U주 %H:%M", "%r"};
+
+int main(void){
+    struct tm* tm;
+    int n;
+    time_t timep;
+    char buf[257];
+
+    time(&timep);
+    tm = localtime(&timep);
+
+    strftime(buf, sizeof(buf), op[0], tm);
+    printf("%s\n", buf);
+    strftime(buf, sizeof(buf), op[1], tm);
+    printf("%s\n", buf);
+    strftime(buf, sizeof(buf), op[2], tm);
+    printf("%s\n", buf);
+}
+```
+```
+$ sh test.sh
+**/**/** **:**:**
+****년 **월 **일 **주 **:**
+**:**:** AM
+```
