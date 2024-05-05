@@ -1,11 +1,21 @@
-#include<sys/sysinfo.h>
 #include<stdio.h>
+#include<unistd.h>
 
-int main(void){
-    struct sysinfo info;
-    sysinfo(&info);
+int main(int argc, char* argv[]){
+    int n;
+	extern char* optarg;
 
-    printf("totalram : %ld\n", info.totalram);
-    printf("freeram : %ld\n", info.freeram);
-    printf("procs : %d\n", info.procs);
+    while((n = getopt(argc, argv, "pn:h")) != -1){
+        switch(n){
+            case 'p':
+                printf("Welcome Linux System Programming!\n");
+                break;
+            case 'n':
+                printf("Nice to meet %s\n", optarg);
+                break;
+            case 'h':
+                printf("-p, -n\n");
+                break;
+        }
+    }
 }
