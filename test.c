@@ -1,21 +1,18 @@
+#include<stdlib.h>
 #include<stdio.h>
-#include<unistd.h>
 
-int main(int argc, char* argv[]){
-    int n;
-	extern char* optarg;
+int main(void){
+    char* val;
+    if((val = getenv("TERM")) == NULL)
+        printf("term not defined\n");
+    else
+        printf("TERM=%s\n", val);
 
-    while((n = getopt(argc, argv, "pn:h")) != -1){
-        switch(n){
-            case 'p':
-                printf("Welcome Linux System Programming!\n");
-                break;
-            case 'n':
-                printf("Nice to meet %s\n", optarg);
-                break;
-            case 'h':
-                printf("-p, -n\n");
-                break;
-        }
-    }
+    setenv("TERM", "vt100", 0);
+    val = getenv("TERM");
+    printf("TERM=%s\n", val);
+
+    setenv("TERM", "vt100", 1); //overwrite
+    val = getenv("TERM");
+    printf("TERM=%s\n", val);
 }
