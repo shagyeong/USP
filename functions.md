@@ -136,7 +136,7 @@
 * 285 : 프로세스 생성 : vfork(2)
 ### 7.3 프로세스 종료
 * 286 : 프로그램 종료 : exit(3)
-* 287 : 프로그램 종료 시 수행할 작업 예약 : atexit(3)
+* 287 : 프로그램 종료 시 수행할 작업 예약 : atexit(3), on_exit(3)
 * 289 : 프로그램 종료 : _exit(2)
 ### 7.4 exec 함수군 활용
 * 290 : exec 함수군 : execl(3), execlp(3), execle(3), execv(3), execvp(3), execvpe(3)
