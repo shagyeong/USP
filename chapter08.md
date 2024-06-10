@@ -580,11 +580,54 @@ typedef struct{
     }
 }siginfo_t;
 ```
-* si_signo : d
-* si_errno : 
-* si_code : 
-
+* si_signo : 관련된 시그널 번호
+* si_errno : 0 또는 시그널 관련 오류 번호
+* si_code : 시그널 발생 원인을 정의하는 코드 - si_code 값이 SI_NOINFO이면 si_signo만 의미가 있고 나머지 멤버는 사용되지 않음
+* 공용체로 묶인 남은 멤버 : 특정 시그널에서만 의미가 있음(man sigaction 참고)
+#### 사용자 프로세스에 의한 시그널 발생 원인 코드
+* si_code 값이 0이거나 0보다 작다면 시그널이 생성되었음을 의미(kill(2), raise(3), abort(3) 등)
+* si_code 주요 값
+  |코드|값|의미|
+  |---|---|---|
+  |SI_USER|0|kill(2) 또는 raise(3)로 시그널을 보냄|
+  |SI_KERNEL|0x80(128)|커널이 시그널을 보냄|
+  |SI_QUEUE|-1|sigqueue()로 시그널을 보냄|
+  |SI_TIMER|-2|timer_settime()가 생성한 타이머가 만료되어 시그널을 보냄|
+  |SI_MESGQ|-3|POSIX 메시지 큐의 상태가 변해서 시그널을 보냄|
+  |SI_ASYNCIO|-4|비동기 입출력이 완료되어 시그널을 보냄|
+  |SI_SIGIO|-5|SIGIO 시그널이 큐에 들어와서 시그널을 보냄|
+* man sigaciton으로 세부 내용을 확인할 수 있음
 #### 시그널 발생 원인 출력 : psiginfo(3)
+```C
+#include<sys/ucontext.h>
+#include<unistd.h>
+#include<sys/signal.h>
+#include<stdlib.h>
+#include<stdio.h>
+
+void sighandler(int signo, siginfo_t* sf, ucontext_t* uc){
+    psiginfo(sf, "received signal:");
+    printf("si_code : %d\n", sf->si_code);
+}
+int main(void){
+    struct sigaction act;
+    act.sa_flags = SA_SIGINFO;
+    act.sa_sigaction = (void (*)(int, siginfo_t *, void *))sighandler;
+    sigemptyset(&act.sa_mask);
+    if(sigaction(SIGUSR1, &act, (struct sigaction*) NULL) < 0){
+        perror("sigaction");
+        perror("sigactioin");
+        exit(1);
+    }
+    pause();
+}
+```
+```
+$ sh test.sh&
+[1] 4880
+$ kill -USR1 4880
+[1]+  사용자 정의 시그널 1    sh test.sh
+```
 
 ## 8.7 알람 시그널
 #### 알람 시그널 생성 : alarm(2)
