@@ -1,24 +1,24 @@
 #include<unistd.h>
-#include<signal.h>
+#include<sys/signal.h>
 #include<stdlib.h>
 #include<stdio.h>
 
 void sighandler(int signo){
-    printf("signal handler signum : %d\n", signo);
-    psignal(signo, "recieved signal"); //8.8절에서 다루는 함수
+    psignal(signo, "received signal:");
+    sleep(5);
+    printf("in signal handler, after sleep\n");
 }
-
 int main(void){
-    void (*hand)(int);
-    hand = signal(SIGINT, sighandler); //SIGINT : Ctrl + C 인터럽트시 종료
-    if(hand == SIG_ERR){
-        perror("signal");
+    struct sigaction act;
+    sigemptyset(&act.sa_mask);
+    sigaddset(&act.sa_mask, SIGQUIT); //SIGQUIT 블로킹
+    act.sa_flags = 0;
+    act.sa_handler = sighandler;
+    if(sigaction(SIGINT, &act, (struct sigaction *)NULL) < 0){
+        perror("sigaction");
         exit(1);
     }
-    printf("wait 1st Ctrl + C... : SIGINT\n");
-    pause(); //pause(2) : 시그널이 입력될 때 까지 기다리는 함수
-    printf("after 1st signal handler\n");
-    printf("wait 2nd Ctrl + C... : SIGINT\n");
+    fprintf(stderr, "input SIGINT: ");
     pause();
-    printf("after 2nd signal handler\n");
+    fprintf(stderr, "after signal handler\n");
 }
