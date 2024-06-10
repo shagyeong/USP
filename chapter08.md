@@ -20,6 +20,8 @@
 ### 8.3 시그널 보내기
 * 323 : 시그널 보내기(kill(2))
 ### 8.4 시그널 기본 처리
+* 327 : 시그널 핸들러 지정(signal(3))
+* 330 : 시그널 핸들러 지정(sigset(3))
 ### 8.5 시그널 집합
 ### 8.6 sigaction()함수의 활용
 ### 8.7 알람 시그널
@@ -211,8 +213,118 @@ void abort(void);
 * raise(SIGABRT)와 동작이 같지만 프로세스를 종료시키므로 리턴하지 않음
 
 ## 8.4 시그널 기본 처리
-#### 325 시그널 핸들러 지정 : signal(3)
-#### 330 시그널 핸들러 지정 : sigset(3)
+### 개요
+#### 시그널에 대한 기본 처리
+* 프로세스 종료
+* 프로세스 종료 전 처리할 작업이 남아있거나 종료하지 않으려면 시그널 핸들러를 지정할 수 있음
+#### 시그널 핸들러(signal handler)
+* **시그널 핸들러** : 시그널을 받을 때 수행할 함수
+* 시그널 붙잡기(catching a signal) : 시그널을 확인해 처리하는 일
+### 시그널 핸들러 지정 : signal(3)
+#### 함수 원형
+```C
+#include<signal.h>
+typedef void (*sighandler_t)(int);
+sighandler_t signal(int signum, sighandler_t handler);
+```
+* 성공시 : 시그널 핸들러의 주소 리턴
+* 실패시 : SIG_ERR 리턴
+#### signum
+* signum : 시그널 핸들러로 처리하려는 시그널
+* SIGKILL, SIGSTOP 시그널을 제외한 모든 시그널을 지정할 수 있음
+#### handler
+* handler : 시그널 핸들러의 이름
+* 다음 세 가지 중 하나를 설정해야 함
+    * 시그널 핸들러 주소
+    * SIG_IGN : 시그널을 무시하도록 설정
+    * SIG_DFL : 시그널의 기본 처리 방법을 수행하도록 지정
+* 시그널 핸들러 리턴 : void(리턴값을 받아서 처리할 수가 없음)
+#### 시스템별 동작 방식
+* handler가 함수 주소이고 signum이 SIGKILL이나 SIGSTOP이 아니라면 signal(3)의 동작은 시스템에 따라 달라짐
+* 시스템 V
+    * 시그널을 처리한 후 시그널 기본 처리 방법(SIG_DFL)으로 재설정함
+    * 시그널 처리를 계속하려면 signal(3)를 호출해 시그널을 처리한 후 다시 signal(3)를 설정해야 함
+* BSD
+    * 시그널을 처리한 후 시그널 기본 처리 방법으로 재설정하지 않음
+    * 시그널 핸들러가 계속 동작함
+* 리눅스
+    * signal(2) : 시스템 V 형식으로 동작
+    * signal(3) : BSD 형식으로 동작(signal(2)를 호출하지 않고 sigaction(2)를 호출)
+#### 예제 327 : 시그널 핸들러 지정(signal(3))
+```C
+#include<unistd.h>
+#include<signal.h>
+#include<stdlib.h>
+#include<stdio.h>
+
+void sighandler(int signo){
+    printf("signal handler signum : %d\n", signo);
+    psignal(signo, "recieved signal"); //8.8절에서 다루는 함수
+}
+
+int main(void){
+    void (*hand)(int);
+    hand = signal(SIGINT, sighandler); //SIGINT : Ctrl + C 인터럽트시 종료
+    if(hand == SIG_ERR){
+        perror("signal");
+        exit(1);
+    }
+    printf("wait 1st Ctrl + C... : SIGINT\n");
+    pause(); //pause(2) : 시그널이 입력될 때 까지 기다리는 함수
+    printf("after 1st signal handler\n");
+    printf("wait 2nd Ctrl + C... : SIGINT\n");
+    pause();
+    printf("after 2nd signal handler\n");
+}
+```
+```
+$ sh test.sh
+wait 1st Ctrl + C... : SIGINT
+^Csignal handler signum : 2
+recieved signal: Interrupt
+after 1st signal handler
+wait 2nd Ctrl + C... : SIGINT
+^Csignal handler signum : 2
+recieved signal: Interrupt
+after 2nd signal handler
+```
+### 330 시그널 핸들러 지정 : sigset(3)
+#### 함수 원형
+```C
+#include<signal.h>
+sighandler_t sigset(int sig, sighandler_t disp);
+```
+* 인자 구조가 signal(2)와 동일
+* 리눅스에서 제공하지만 사용을 권장하지 않음
+* 솔라리스 : 한 번 호출된 후 기본 동작으로 재설정하지 않음
+#### 예제 330 : 시그널 핸들러 지정(sigset(3))
+```C
+#include<unistd.h>
+#include<signal.h>
+#include<stdlib.h>
+#include<stdio.h>
+
+void sighandler(int signo){
+    printf("signal handler signal number : %d\n", signo);
+    psignal(signo, "received signal");
+}
+
+int main(void){
+    void (*hand)(int);
+    hand = sigset(SIGINT, sighandler);
+    if(hand == SIG_ERR){
+        perror("sigset");
+        exit(1);
+    }
+    printf("wait 1st Ctrl + C... : SIGINT\n");
+    pause();
+    printf("after 1st signal handler\n");
+    printf("wait 2nd Ctrl + C... : SIGINT\n");
+    pause();
+    printf("after 2nd signal handler\n");
+}
+```
+* 솔라리스에서 실행
 ## 8.5 시그널 집합
 #### 시그널 집합 비우기 : sigemptyset(3)
 #### 시그널 집합에 모든 시그널 설정 : sigfillset(3)
