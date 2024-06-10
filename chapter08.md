@@ -580,7 +580,7 @@ typedef struct{
     }
 }siginfo_t;
 ```
-* si_signo : 
+* si_signo : d
 * si_errno : 
 * si_code : 
 
