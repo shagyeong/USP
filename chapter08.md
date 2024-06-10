@@ -23,7 +23,9 @@
 * 327 : 시그널 핸들러 지정(signal(3))
 * 330 : 시그널 핸들러 지정(sigset(3))
 ### 8.5 시그널 집합
+* 335 : 시그널 집합 처리 함수 사용(sigemptyset(3), sigaddset(3), sigdelset
 ### 8.6 sigaction()함수의 활용
+* 340 : 시그널 핸들러 지정(sigaction(2))
 ### 8.7 알람 시그널
 ### 8.8 기타 시그널 처리 함수
 
@@ -326,18 +328,269 @@ int main(void){
 ```
 * 솔라리스에서 실행
 ## 8.5 시그널 집합
+### 개요
+* **시그널 집합(signal set)** : 복수의 시그널을 처리하기 위한 개념
+* 시그널은 보통 개별적으로 처리되나 POSIX 표준에서 정의한 함수는 복수의 시그널을 처리할 수 있게 함
+### 8.5.1 시그널 집합의 개념
+#### 시그널 집합
+* **시그널 집합** : 시그널을 비트 마스크로 표현한 것
+* 비트 한 개와 시그널 한 개가 대응
+* 1 : 시그널이 설정되어 있음
+* 0 : 시그널이 설정되어 있지 않음
+#### sigset_t 구조체
+* sigset_t 구조체 : 시그널 집합 처리를 위한 구조체
+```C
+//리눅스
+typedef sigset_t{
+    unsigned long __val[_NSIG_WORDS];
+}sigset_t;
+//솔라리스
+typedef struct{
+    unsigned int __sigbits[4];
+}sigset_t;
+```
+### 8.5.2 시그널 집합 처리 함수
 #### 시그널 집합 비우기 : sigemptyset(3)
+```C
+#include<signal.h>
+int sigemptyset(sigset_t* set);
+```
+* 시스템에서 정의한 모든 시그널을 배제해 인자로 지정한 시그널 집합을 빈 집합(empty set)으로 만듬(시그널 집합의 모든 비트를 0으로 설정)
+* 성공시 : 0 리턴
+* 실패시 : -1 리턴
 #### 시그널 집합에 모든 시그널 설정 : sigfillset(3)
+```C
+#include<signal.h>
+int sigfillset(sigset_t* set);
+```
+* 인자로 받은 시그널 집합을 시스템에서 정의한 모든 시그널을 포함하는 집합으로 만듬(시그널 집합의 모든 비트를 1로 설정)
+* 성공시 : 0 리턴
+* 실패시 : -1 리턴
 #### 시그널 집합에 시그널 설정 추가 : sigaddset(3)
+```C
+#include<signal.h>
+int sigaddset(sigset_t* set, int signum);
+```
+* signum으로 지정한 시그널을 시그널 집합에 추가
+* 성공시 : 0 리턴
+* 실패시 : -1 리턴
 #### 시그널 집합에서 시그널 설정 삭제 : sigdelset(3)
+```C
+#include<signal.h>
+int sigdelset(sigset_t* set, int signum);
+* signum으로 지정한 시그널을 시그널 집합에서 제거
+* 성공시 : 0 리턴
+* 실패시 : -1 리턴
+```
 #### 시그널 집합에 설정된 시그널 확인 : sigismember(3)
+```C
+#include<signal.h>
+int sigismember(const sigset_t* set, intsignum);
+```
+* signum으로 지정한 시그널이 시그널 집합에 포함되어 있는지 확인
+* 포함되어 있는 경우 : 1 리턴
+* 포함되어 있지 않음 : 0 리턴
+#### 예제 335 : 시그널 집합 처리 함수 사용(sigemptyset(3), sigaddset(3), sigdelset(3), sigismember(3))
+```C
+#include<sys/signal.h>
+#include<stdio.h>
+
+int main(void){
+    sigset_t ss;
+    sigemptyset(&ss);
+    
+    sigaddset(&ss, SIGINT);
+    sigaddset(&ss, SIGQUIT);
+    printf("sigaddset\n");
+    if(sigismember(&ss, SIGINT) == 0 && sigismember(&ss, SIGQUIT) == 0){
+        printf("SIGINT and SIGQUIT are not in a set\n");
+    }
+    else{
+        printf("SIGINT and SIGQUIT are in a set\n");
+    }
+    printf("bit patter : %lx\n", ss.__val[0]);
+
+    printf("\n");
+
+    sigdelset(&ss, SIGINT);
+    sigdelset(&ss, SIGQUIT);
+    printf("sigdelset\n");
+    if(sigismember(&ss, SIGINT) == 0 && sigismember(&ss, SIGQUIT) == 0){
+        printf("SIGINT and SIGQUIT are not in a set\n");
+    }
+    else{
+        printf("SIGINT and SIGQUIT are in a set\n");
+    }
+
+    printf("bit patter : %lx\n", ss.__val[0]);
+}
+```
+```
+$ sh test.sh
+sigaddset
+SIGINT and SIGQUIT are in a set
+bit patter : 6
+
+sigdelset
+SIGINT and SIGQUIT are not in a set
+bit patter : 0
+```
+* 비트 패턴(시그널 집합의 값) : 6
+    * $0x06_{16} = 0000 \ 0110_2$
+* 우측에서 2, 3번째 값이 1이 설정되었음(시그널 번호 : SIGINT-2 SIGQUIT-3)
 ## 8.6 sigaction()함수의 활용
+### 8.6.1 sigaction 구조체
+#### sigaction 구조체
+```C
+struct sigaction{
+    void (*sa_handler)(int);
+    void (*sa_sigaction)(int, siginfo_t*, void*);
+    sigset_t sa_mask;
+    int sa_flags;
+    void (*sa_restorer)(void);
+};
+```
+#### sa_handler, sa_sigaction
+* **sa_handler, sa_sigaction** : 시그널을 처리할 동작을 지정함
+```C
+...
+union{
+    void(*sa_handler)();
+    void(*sa_sigaction)(int, siginfo_t*, void*);
+}_funcptr;
+```
+* 일부 시스템에서 두 멤버가 공용체(union)으로 정의되어 둘 중 하나만 값을 설정하도록 함
+* sa_flags에 SA_SIGINFO가 설정되어 있지 않은 경우 : sa_handler에 시그널을 처리할 동작을 지정
+* sa_flags에 SA_SIGINFO가 설정되어 있는 경우 : sa_sigaction에 시그널을 처리할 동작을 지정
+#### sa_mask
+* **sa_mask** : 시그널 핸들러가 동작 중일 때 **블로킹**할 시그널을 시그널 집합으로 지정
+* 시그널 핸들러가 시작되어 시그널을 전달할 때 이미 블로키오딘 시그널 집합에 sa_mask로 지정한 시그널 집합을 추가함
+* sa_flags에 SA_NODEFER를 설정하지 않으면 시그널 핸들러를 호출하게 한 시그널도 블로킹됨
+#### sa_flags
+* **sa_flags** : 시그널 전달 방법을 수정할 플래그를 OR 연산하여 지정
+* SA_NOCLDSTOP
+    * 이 값이 설정되어 있고 signum이 SIGCHLD라면 자식 프로세스를 중지하거나 재시작 할 때 부모 프로세스에 전달하지 않음
+* SA_NOCLDWAIT
+    * 이 값이 설정되어 있고 signum이 SIGCHLD라면 시스템은 자식 프로세스를 종료할 때 좀비 프로세스로 만들지 않음
+* SA_NODEFER
+    * 이 값을 설정하고 시그널을 받으면 시그널 핸들러가 처리하는 동안 해당 시그널은 시스템 커널에 으해 자동으로 블로킹되지 않음
+* SA_ONSTACK
+    * sigaltstack(2)로 생성한 대체 시그널 스택에 있는 시그널 핸들러를 호출
+    * 대체 스택이 없으면 기본 스택이 사용됨
+    * 시그널 핸들러가 설정되어 있는 경우에만 유효함
+* SA_RESETHAND
+    * 시그널의 기본 처리 방법은 SIG_DFL로 재설정됨
+* SA_RESTART
+    * BSD 형식으로 시그널 처리를 하도록 함
+* SA_SIGINFO
+    * 이 플래그가 설정되어 있으면 시그널 핸들러는 인자를 3개 받음
+    * sa_sigaction을 사용해야 함
+    * 첫 번째 인자 : 시그널 번호
+    * 두 번째 인자 : NULL 또는 시그널이 발생한 이유가 저장된 siginfo_t 구조체를 가리킴
+    * 세 번째 인자 : 시그널이 전달될 때 시그널을 받는 프로세스의 상태를 나타내는 ucontext_t 구조체를 가리킴
+### 8.6.2 sigaction(2)
+#### 개요
+* **sigaction(2)** : 시그널을 받아 시그널 핸들러를 지정할 뿐만 아니라 플래그를 설정해 시그널을 처리하는 과정을 제어할 수도 있음
 #### sigaction(2)
+```C
+#include<signal.h>
+int sigaction(int signum, const struct sigaction* act, struct sigaction* oldact);
+```
+* 인자 설명
+    * signum : 처리할 시그널
+    * act : 시그널을 처리할 방법을 지정한 sigaction 구조체 주소
+    * oldact : 기존에 시그널을 처리하던 방법을 저장할 구조체 주소
+* signum에 지정한 시그널을 받았을 때 처리할 방법을 act로 받음
+* signum은 SIGKILL, SIGSTOP을 제외하고 사용 가능
+* 성공시 : 0 리턴
+* 실패시 : -1 리턴
+#### 예제 340 : 시그널 핸들러 지정(sigaction(2))
+```C
+#include<unistd.h>
+#include<sys/signal.h>
+#include<stdlib.h>
+#include<stdio.h>
+
+void sighandler(int signo){
+    psignal(signo, "received signal:");
+    sleep(5);
+    printf("in signal handler, after sleep\n");
+}
+int main(void){
+    struct sigaction act;
+    sigemptyset(&act.sa_mask);
+    sigaddset(&act.sa_mask, SIGQUIT); //SIGQUIT 블로킹
+    act.sa_flags = 0;
+    act.sa_handler = sighandler;
+    if(sigaction(SIGINT, &act, (struct sigaction *)NULL) < 0){
+        perror("sigaction");
+        exit(1);
+    }
+    fprintf(stderr, "input SIGINT: ");
+    pause();
+    fprintf(stderr, "after signal handler\n");
+}
+```
+```
+$ sh test.sh
+input SIGINT: ^Creceived signal:: Interrupt
+^\in signal handler, after sleep
+끝내기 (코어 덤프됨)
+```
+* SIGQUIT을 블로킹
+* 시그널 핸들러 수행 도중 Ctrl + \ 인터럽트를 입력
+* 시그널 핸들러 내부의 sleep() 이후 코어 덤프되는 것을 확인
+#### SA_RESETHAND 플래그의 처리
+```C
+...
+act.sa_flags = SA_RESETHAND;
+...
+```
+* 시그널 핸들러가 한 번 호출된 후에 시그널 처리 방법이 기본 처리 방법으로 재설정됨
+* 프로세스 종료
+```
+$ sh test.sh
+input SIGINT: ^Creceived signal:: Interrupt
+^C\in signal handler, after sleep
+$
+```
+### 8.6.3 시그널 발생 원인 검색
+#### 개요
+* sa_flags에 SA_SIGINFO 지정시
+    * 시그널이 발생한 원인을 알 수 있음
+    * 시그널 핸들러 지정시 sa_handler 대신 sa_sigaction을 사용함
+    * 시그널 핸들러는 인자를 3개 받는 형태가 됨
+```C
+void handlername(int sig, siginfo_t* info, void* ucontext){
+    ...
+}
+```
+* sig : 시그널 핸들러를 호출할 시그널
+* info : 시그널이 발생한 원인을 담은 siginfo_t 구조체 포인터
+* ucontext : 시그널이 전달될 때 시그널을 받는 프로세스의 내부 상태를 나타내는 ucontext_t 구조체 포인터
+#### siginfo_t 구조체
+* <sys/siginfo.h>에 정의되어 있음
+```C
+typedef struct{
+    int si_signo;
+    int si_errno;
+    int si_code;
+    union{
+        ...
+    }
+}siginfo_t;
+```
+* si_signo : 
+* si_errno : 
+* si_code : 
+
 #### 시그널 발생 원인 출력 : psiginfo(3)
+
 ## 8.7 알람 시그널
 #### 알람 시그널 생성 : alarm(2)
 #### 타이머 정보 검색 : getitimer(2)
 #### 타이머 설정 : setitimer(2)
+
 ## 8.8 기타 시그널 처리 함수
 #### 시그널 정보 출력 : psignal(3)
 #### 시그널 정보 출력 : strsignal(3)
