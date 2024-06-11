@@ -160,28 +160,6 @@ int usrrmdir(DIR* dp){
     printf("directory is not empty\n");
     return -1;
 }
-int usrrmdir(DIR* dp);
-
-int main(void){
-    mkdir("dir", 0755);
-    DIR* dp = opendir("dir");
-    if(usrrmdir(dp) == -1){
-        perror("usrrmdir");
-        exit(1);
-    }
-    rmdir("dir");
-}
-int usrrmdir(DIR* dp){
-    struct dirent* dent;
-    dent = readdir(dp); //현재 디렉터리(".")
-    dent = readdir(dp); //상위 디렉터리("..")
-    if((dent = readdir(dp)) == NULL){
-        printf("directory is empty\n");
-        return 0;
-    }
-    printf("directory is not empty\n");
-    return -1;
-}
 ```
 ```
 $ sh test.sh
