@@ -2,39 +2,85 @@
 ## 객관식
 #### 01 파일명으로 파일 정보를 검색할 때 사용하는 함수는?
 * 1 : fstat()
-* 2 : stat()
+* ***2 : stat()***
 * 3 : inode()
 * 4 : fopen()
 #### 02 매크로를 이용해 파일의 종류를 검색하려고 한다. 일반 파일인지 알아내는 매크로는?
 * 1 : SISLNK(m)
 * 2 : S_ISCHR(m)
 * 3 : S_ISFIFO(m)
-* 4 : S_ISREG(m)
+* ***4 : S_ISREG(m)***
 #### 03 access(2)를 이용해 han.txt 파일이 존재하는지 확인하려고 한다. 올바르게 사용한 것은?
 * 1 : access("han.txt", R_OK);
 * 2 : access("han.txt", W_OK);
 * 3 : access("han.txt", IS_OK);
-* 4 : access("han.txt", F_OK);
+* ***4 : access("han.txt", F_OK);***
 #### 04 chmod(2)를 이용해 han.txt 파일의 권한을 소유자만 읽고 쓸 수 있도록 설정하려고 한다. 올바르게 설정한 것은?
 * 1 : chmod("han.txt", S_IRUSR | S_IWGRP);
 * 2 : chmod("han.txt", S_IRGRP | S_IWGRP);
-* 3 : chmod("han.txt", S_IRUSR | S_IWUSR);
+* ***3 : chmod("han.txt", S_IRUSR | S_IWUSR);***
 * 4 : chmod("han.txt", S_IRWXU | S_IWUSR);
 #### 05 han.txt 파일의 하드 링크로 han.ln 파일을 만들려고 한다. 맞게 사용한 것은?
-* 1 : symlink("han.txt", "han.ln");
+* ***1 : symlink("han.txt", "han.ln");***
 * 2 : link("han.txt", "han.ln");
 * 3 : lin("han.ln", "han.txt");
 * 4 : symlink("han.ln", "han.txt");
 ## 주관식
 ### 06 명령행 인자로 받은 파일의 크기를 알려주는 프로그램을 작성하시오.
 ```C
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<unistd.h>
+#include<stdio.h>
+
+int main(int argc, char* argv[]){
+    struct stat statbuf;
+    stat(argv[1], &statbuf);
+    printf("size : %d\n", (int)statbuf.st_size);
+}
 ```
 ```
+$ ./test test.sh
+size : 33
 ```
 ### 07 명령행 인자로 받은 파일의 종류를 출력하는 프로그램을 작성하시오.
 ```C
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<unistd.h>
+#include<stdio.h>
+
+int main(int argc, char* argv[]){
+    struct stat statbuf; stat(argv[1], &statbuf);
+    int ftype = statbuf.st_mode & __S_IFMT;
+    switch(ftype){
+        case(__S_IFSOCK):
+            printf("소켓 파일\n");
+            break;
+        case(__S_IFLNK):
+            printf("심벌릭 링크 파일\n");
+            break;
+        case(__S_IFREG):
+            printf("일반 파일\n");
+            break;
+        case(__S_IFBLK):
+            printf("블록 장치 특수 파일\n");
+            break;
+        case(__S_IFDIR):
+            printf("디렉터리\n");
+            break;
+        case(__S_IFCHR):
+            printf("문자 장치 특수 파일\n");
+            break;
+        case(__S_IFIFO):
+            printf("FIFO 파일\n");
+            break;
+    }
+}
 ```
 ```
+$ ./test test.sh
+일반 파일
 ```
 ### 08 명령행 인자로 받은 파일의 정보를 추출해 다음 예와 같이 출력하는 프로그램을 작성하시오.
 #### 실행 예시
@@ -47,17 +93,84 @@ inode 번호 : *******
 UID : ****
 ```
 ```C
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<unistd.h>
+#include<stdio.h>
+void printstat(char* path);
+char* ftype(int type);
+
+int main(int argc, char* argv[]){
+    printstat(argv[1]);
+}
+void printstat(char* path){
+    struct stat statbuf; stat(path, &statbuf);
+    printf("파일명 : %s\n", path);
+    printf("inode 번호 : %d\n", (int)statbuf.st_ino);
+    printf("파일 종류 : %s\n", ftype(statbuf.st_mode & __S_IFMT));
+    printf("접근 권한 : %d\n", statbuf.st_mode);
+    printf("UID : %d\n", statbuf.st_uid);
+}
+char* ftype(int type){
+    switch(type){
+        case(__S_IFSOCK):return "소켓 파일";
+        case(__S_IFLNK):return "심벌릭 링크 파일";
+        case(__S_IFREG):return "일반 파일";
+        case(__S_IFBLK):return "블록 장치 특수 파일";
+        case(__S_IFDIR):return "디렉터리";
+        case(__S_IFCHR):return "문자 장치 특수 파일";
+        case(__S_IFIFO):return "FIFO 파일";
+    }
+}
 ```
 ```
+$ sh test.sh
+파일명 : test.sh
+inode 번호 : 403943
+파일 종류 : 일반 파일
+접근 권한 : 33204
+UID : 1000
 ```
-### 09 명령행 인자로 받은 파일의 UID 접근 권한을 다음 예와 같이 출력하는 프로그램을 작성하시오.
+### 09 명령행 인자로 받은 파일의 UID와 접근 권한을 다음 예와 같이 출력하는 프로그램을 작성하시오.
 #### 실행 예시
 ```
 $ test.c 1000 rw-r--r--
 ```
 ```C
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<unistd.h>
+#include<stdio.h>
+void printstat(char* path);
+void mode(struct stat statbuf, char* charmode);
+
+int main(int argc, char* argv[]){
+    printstat(argv[1]);
+}
+void printstat(char* path){
+    struct stat statbuf; stat(path, &statbuf);
+    char charmode[9];mode(statbuf, charmode);
+    printf("%s %d %s\n", path, (int)statbuf.st_uid, charmode);
+}
+void mode(struct stat statbuf, char* charmode){
+    unsigned int intmode = statbuf.st_mode;
+    //oth
+    if(intmode & 1 == 1){charmode[8] = 'x';}else{charmode[8] = '-';} intmode >>= 1;
+    if(intmode & 1 == 1){charmode[7] = 'w';}else{charmode[7] = '-';} intmode >>= 1;
+    if(intmode & 1 == 1){charmode[6] = 'r';}else{charmode[6] = '-';} intmode >>= 1;
+    //grp
+    if(intmode & 1 == 1){charmode[5] = 'x';}else{charmode[5] = '-';} intmode >>= 1;
+    if(intmode & 1 == 1){charmode[4] = 'w';}else{charmode[4] = '-';} intmode >>= 1;
+    if(intmode & 1 == 1){charmode[3] = 'r';}else{charmode[3] = '-';} intmode >>= 1;
+    //usr
+    if(intmode & 1 == 1){charmode[2] = 'x';}else{charmode[2] = '-';} intmode >>= 1;
+    if(intmode & 1 == 1){charmode[1] = 'w';}else{charmode[1] = '-';} intmode >>= 1;
+    if(intmode & 1 == 1){charmode[0] = 'r';}else{charmode[0] = '-';}
+}
 ```
 ```
+$ sh test.sh
+test.sh 1000 rw-rw-r--
 ```
 ### 10 현재 디렉터리에 있는 모든 파일 및 하위 디렉터리의 이름과 inode를 출력하는 프로그램을 작성하시오.
 ```C
