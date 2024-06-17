@@ -174,13 +174,65 @@ test.sh 1000 rw-rw-r--
 ```
 ### 10 현재 디렉터리에 있는 모든 파일 및 하위 디렉터리의 이름과 inode를 출력하는 프로그램을 작성하시오.
 ```C
+#include<stdio.h>
+#include<dirent.h>
+#include<sys/types.h>
+
+int main(void){
+    DIR* dp = opendir(".");
+    struct dirent* dent;
+    while((dent = readdir(dp)) != NULL){
+        printf("%s : %d\n", dent->d_name, (int)dent->d_ino);
+    }
+    closedir(dp);
+}
 ```
 ```
+$ sh test.sh
+test : 392666
+.git : 417869
+. : 417868
+*********.md : 412558
+(...)
 ```
 ### 11 현재 디렉터리에서 '.', '..' 항목을 제외하고 하위 디렉터리만 출력하는 usrdir프로그램을 작성하시오.
 ```C
+//readdir(3)으로 디렉터리 내 파일 순회
+// dent구조체 멤버 d_name을 통해 stat(2)의 인자로 전달
+//statbuf->mode_t로 디렉터리인지 일반 파일인지 구분하여 출력
+// 일반 파일 : 10xxxx(8) 또는 1000 xxx xxx xxx(2)
+// 디렉터리 : 4xxxx(8) 또는 0100 xxx xxx xxx(2)
+#include<stdio.h>
+#include<dirent.h>
+#include<sys/types.h>
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<unistd.h>
+#include<string.h>
+
+int main(void){
+    mkdir("dir01", 0755);
+    mkdir("dir02", 0755);
+
+    DIR* dp = opendir(".");
+    struct dirent* dent;
+    struct stat statbuf;
+    unsigned int mode;
+
+    while((dent = readdir(dp)) != NULL){
+        stat(dent->d_name, &statbuf);
+        mode = statbuf.st_mode >> 12; //파일 종류 비트만 남김
+        if(mode == 4 && strcmp(dent->d_name, ".") != 0 && strcmp(dent->d_name, "..") != 0)
+            printf("%s ", dent->d_name);
+    }
+
+    rmdir("dir01");
+    rmdir("dir02");
+}
 ```
 ```
+$ sh test.sh
+.git dir02 .vscode dir01
 ```
 ### 12 명령행 인자로 받은 파일의 기존 접근 권한을 출력하고 접근 권한을 변경하는 프로그램을 작성하시오.(문자 모드 기능 구현)
 #### 실행 예시
