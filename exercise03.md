@@ -386,8 +386,24 @@ link: No such file or directory
 $ usrsym test.c
 ```
 ```C
+#include<stdio.h>
+#include<unistd.h>
+#include<limits.h>
+#include<stdlib.h>
+
+int main(int argc, char* argv[]){
+    if(symlink(argv[1], "test.sym") == -1){
+        perror("symlink");
+    }
+    char buf[BUFSIZ];
+    readlink("test.sym", buf, BUFSIZ); printf("%s\n", buf);
+    realpath("test.sym", buf); printf("%s\n", buf);
+}
 ```
 ```
+$ ./test test.txt
+test.txt
+/home/*********/***/*****/***/test.txt
 ```
 
 ### 17 현재 디렉터리에서 inode가 같은 파일을 검색해 파일명을 출력하는 프로그램을 작성하시오.
