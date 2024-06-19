@@ -240,6 +240,72 @@ $ sh test.sh
 $ usrchmod g+w test.c
 ```
 ```C
+/*
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<unistd.h>
+#include<stdio.h>
+#include<string.h>
+
+void printbinary(int integer){
+    for(int j = 15; j > -1; j--){
+        printf("%d", integer >> j & 1);
+    }
+    printf("\n");
+}
+int returnmask(char* ugo, char* rwx){
+    int mask = 0B0000000000000000;
+    if(strcmp(rwx, 'x') == 0){mask +=0B001;}
+    else if(strcmp(rwx, 'w') == 0){mask +=0B010;}
+    else if(strcmp(rwx, 'wx') == 0){mask +=0B011;}
+    else if(strcmp(rwx, 'r') == 0){mask +=0B100;}
+    else if(strcmp(rwx, 'rx') == 0){mask +=0B101;}
+    else if(strcmp(rwx, 'rw') == 0){mask +=0B110;}
+    else if(strcmp(rwx, 'rwx') == 0){mask +=0B111;}    
+}
+
+int main(int argc, char* argv[]){
+    char* fname = argv[argc - 1];
+    struct stat statbuf; stat(fname, &statbuf);
+    int mode = statbuf.st_mode;
+    
+    int index1 = 0;
+    int index2 = 0;
+
+    char sign; //+-=
+    char ugo[3];
+    char rwx[3];
+
+    for(int i = 1; i < argc - 1; i++){
+        while(argv[i][index1] != '+' && argv[i][index1] != '-'){
+            ugo[index2] = argv[i][index1];
+            index1++;
+            index2++;
+        }
+        printf("%s", ugo);
+        sign = argv[i][index1];
+        index1++;
+        index2 = 0;
+        while(argv[i][index1] != '\0'){
+            rwx[index2] = argv[i][index1];
+            index1++;
+            index2++;
+        }
+        
+        printf("%c %s %s\n", sign, ugo, rwx);
+        ugo[0] = '\0';ugo[1] = '\0';ugo[2] = '\0';
+        rwx[0] = '\0';rwx[1] = '\0';rwx[2] = '\0';
+        index1 = 0;
+        index2 = 0;
+    }
+}
+
+
+
+ugo rwx
+./test ug+rw test.txt
+./test u+rwx g-x o-x test.txt
+*/
 ```
 ```
 ```
@@ -249,8 +315,44 @@ $ usrchmod g+w test.c
 $ usrchmod 777 test.c
 ```
 ```C
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<unistd.h>
+#include<stdio.h>
+#include<string.h>
+#include<stdlib.h>
+
+void printbinary(int integer){
+    for(int j = 15; j > -1; j--){
+        printf("%d", integer >> j & 1);
+    }
+    printf("\n");
+}
+
+//세 자리의 팔진수를 십진수로 변환
+int octodeci(int octo){
+    int deci = 0;
+    deci += octo / 100 * 64; octo -= (octo / 100) * 100;
+    deci += octo / 10 * 8; octo -= (octo / 10) * 10;
+    deci += octo;
+    return deci;    
+}
+
+int main(int argc, char* argv[]){
+    int mode = octodeci(atoi(argv[1]));
+    mode |= 0B1111111000000000; //st_mode와 &연산을 하므로 선행하는 7비트는 1로 마스크
+    struct stat statbuf; stat(argv[2], &statbuf);
+    
+    printf("prev mode : "); printbinary(statbuf.st_mode);
+    statbuf.st_mode |= 0B0000000111111111;
+    statbuf.st_mode &= mode;
+    printf("curr mode : "); printbinary(statbuf.st_mode);
+}
 ```
 ```
+$ ./test 777 test.c
+prev mode : 1000000110110100
+curr mode : 1000000111111111
 ```
 ### 14 현재 디렉터리의 파일을 지정한 디렉터리로 이동시키는 프로그램을 작성하시오.
 #### 실행 예시
@@ -261,10 +363,22 @@ $ usrmv test.c dir
 ```
 ```
 ```
-### 15 다른 파일 시스템에 있는 파일의 하드 링크르 생성하려면 어떤 오류 메시지가 발생하는지 확인하시오.
+### 15 다른 파일 시스템에 있는 파일의 하드 링크를 생성하면 어떤 오류 메시지가 발생하는지 확인하시오.
 ```C
+#include<unistd.h>
+#include<stdio.h>
+#include<stdlib.h>
+
+int main(void){
+    if(link("test.java", "test.ln") == -1){
+        perror("link");
+        exit(1);
+    }
+}
 ```
 ```
+$ ./test
+link: No such file or directory
 ```
 ### 16 명령행 인자로 받은 파일의 심벌릭 링크를 생성하고 심벌릭 링크 파일의 내용과 원본 파일의 경로를 출력하는 프로그램을 작성하시오.
 * 실행 예
