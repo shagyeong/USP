@@ -1,26 +1,26 @@
 # 3장 연습문제
 ## 객관식
-#### 01 파일명으로 파일 정보를 검색할 때 사용하는 함수는?
+### 01 파일명으로 파일 정보를 검색할 때 사용하는 함수는?
 * 1 : fstat()
 * ***2 : stat()***
 * 3 : inode()
 * 4 : fopen()
-#### 02 매크로를 이용해 파일의 종류를 검색하려고 한다. 일반 파일인지 알아내는 매크로는?
+### 02 매크로를 이용해 파일의 종류를 검색하려고 한다. 일반 파일인지 알아내는 매크로는?
 * 1 : SISLNK(m)
 * 2 : S_ISCHR(m)
 * 3 : S_ISFIFO(m)
 * ***4 : S_ISREG(m)***
-#### 03 access(2)를 이용해 han.txt 파일이 존재하는지 확인하려고 한다. 올바르게 사용한 것은?
+### 03 access(2)를 이용해 han.txt 파일이 존재하는지 확인하려고 한다. 올바르게 사용한 것은?
 * 1 : access("han.txt", R_OK);
 * 2 : access("han.txt", W_OK);
 * 3 : access("han.txt", IS_OK);
 * ***4 : access("han.txt", F_OK);***
-#### 04 chmod(2)를 이용해 han.txt 파일의 권한을 소유자만 읽고 쓸 수 있도록 설정하려고 한다. 올바르게 설정한 것은?
+### 04 chmod(2)를 이용해 han.txt 파일의 권한을 소유자만 읽고 쓸 수 있도록 설정하려고 한다. 올바르게 설정한 것은?
 * 1 : chmod("han.txt", S_IRUSR | S_IWGRP);
 * 2 : chmod("han.txt", S_IRGRP | S_IWGRP);
 * ***3 : chmod("han.txt", S_IRUSR | S_IWUSR);***
 * 4 : chmod("han.txt", S_IRWXU | S_IWUSR);
-#### 05 han.txt 파일의 하드 링크로 han.ln 파일을 만들려고 한다. 맞게 사용한 것은?
+### 05 han.txt 파일의 하드 링크로 han.ln 파일을 만들려고 한다. 맞게 사용한 것은?
 * ***1 : symlink("han.txt", "han.ln");***
 * 2 : link("han.txt", "han.ln");
 * 3 : lin("han.ln", "han.txt");
