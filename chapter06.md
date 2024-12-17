@@ -16,7 +16,7 @@ pid_t getppid(void);                //부모 PID 검색
 pid_t getpgrp(void);                //프로세스 그룹 ID 검색
 pid_t getpgid(pid_t pid);           //프로세스 그룹 ID 검색
 int setpgid(pid_t pid, pid_t pgid); //프로세스 그룹 ID 변경
-pid_t getsid(pid_t pid);            //세션 리더 ID rjator
+pid_t getsid(pid_t pid);            //세션 리더 ID 검색
 pid_t setsid(void);                 //세션 생성
 ```
 #### 프로세스 실행 시간 측정 함수
