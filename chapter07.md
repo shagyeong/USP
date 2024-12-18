@@ -429,3 +429,79 @@ child process
 ```
 
 ## 7.5 프로세스 동기화
+### 7.5.1 좀비 프로세스
+#### 정상적인 프로세스 종료 과정
+- 자식 프로세스가 부모 프로세스에 종료 상태를 보냄
+- 부모 프로세그가 *프로세스 테이블*에서 자식 프로세스를 삭제
+#### 좀비 프로세스
+- 좀비 프로세스: 부모-자식 프로세스간 종료 절차가 제대로 진행되지 않아 발생하는 불안정 상태의 프로세스
+- 부모가 자식 프로세스의 종료 상태를 받지 않았거나 부모 프로세스가 먼저 종료된 경우 발생
+- *고아* 프로세스: 부모 프로세스가 먼저 종료된 자식 프로세스 - init 프로세스로 *입양*되어 처리
+- 좀비 프로세스는 프로세스 테이블에만 존재한다
+### 7.5.2 프로세스 동기화
+#### 프로세스 동기화
+- 프로세스 동기화: 부모 프로세스가 자식 프로세스 실행이 완전히 끝나기를 기다렸다가 종료 상태를 확인
+#### 프로세스 동기화: wait(2)
+```C
+#include<sys/types.h>
+#include<sys/wait.h>
+pid_t wait(int* wstatus);
+```
+- 자식 프로세스가 종료될 때까지 부모 프로세스를 기다리게 함
+- wstatus: 자식 프로세스 종료 상태 저장
+- 리턴: 자식 프로세스의 PID
+- -1 리턴: 살아있는 자식 프로세스가 없다
+#### 예제: 프로세스 동기화(wait(2))
+```C
+#include<sys/types.h>
+#include<sys/wait.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(void){
+    int status;
+    pid_t pid;
+    switch(pid = fork()){
+        case -1:
+            perror("fork");
+            exit(1);
+            break;
+        case 0:
+            printf("child process\n");
+            exit(2);
+            break;
+        default:
+            while(wait(&status) != pid){continue;}
+            printf("parent process\n");
+            printf("child's exit status: %d\n", status >> 8);
+            
+    }
+}
+```
+```
+$ ./test
+child process
+parent process
+child's exit status: 2
+```
+- status >> 8: 부모 프로세스에 왼쪽으로 한 바이트 이동해 전달됨
+#### 동기화할 프로세스 지정: watipid(2)
+```C
+#include<sys/types.h>
+#include<sys/wait.h>
+pid_t waitpid(pid_t pid, int* wstatus, int optons);
+```
+#### 예제: 동기화할 프로세스 지정(watipid(2))
+```C
+```
+```
+```
+#### 동기화할 프로세스 지정: watiid(2)
+```C
+```
+#### 예제: 동기화할 프로세스 지정(watiid(2))
+```C
+```
+```
+```

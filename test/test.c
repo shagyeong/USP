@@ -1,9 +1,11 @@
 #include<sys/types.h>
+#include<sys/wait.h>
 #include<unistd.h>
 #include<stdlib.h>
 #include<stdio.h>
 
 int main(void){
+    int status;
     pid_t pid;
     switch(pid = fork()){
         case -1:
@@ -12,15 +14,12 @@ int main(void){
             break;
         case 0:
             printf("child process\n");
-            if(execlp("ls", "ls", "-a", (char*) NULL) == -1){
-                perror("execlp");
-                exit(1);
-            }
-            exit(0);
+            exit(2);
             break;
         default:
+            while(wait(&status) != pid){continue;}
             printf("parent process\n");
-            printf("pid: %d\n", (int)getpid());
-            break;
+            printf("child's exit status: %d\n", status >> 8);
+            
     }
 }
