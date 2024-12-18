@@ -12,13 +12,15 @@ int main(void){
             break;
         case 0:
             printf("child process\n");
-            printf("pid: %d, ppid: %d\n", (int)getpid(), (int)getppid());
+            if(execlp("ls", "ls", "-a", (char*) NULL) == -1){
+                perror("execlp");
+                exit(1);
+            }
+            exit(0);
             break;
         default:
             printf("parent process\n");
-            printf(
-                "pid: %d, ppid: %d, child's pid: %d\n",
-                (int)getpid(), (int)getppid(), (int)pid
-            );
+            printf("pid: %d\n", (int)getpid());
+            break;
     }
 }
