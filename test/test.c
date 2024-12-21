@@ -7,19 +7,23 @@
 int main(void){
     int status;
     pid_t pid;
-    switch(pid = fork()){
-        case -1:
-            perror("fork");
-            exit(1);
-            break;
-        case 0:
-            printf("child process\n");
-            exit(2);
-            break;
-        default:
-            while(wait(&status) != pid){continue;}
-            printf("parent process\n");
-            printf("child's exit status: %d\n", status >> 8);
-            
+    siginfo_t infop;
+
+    if((pid = fork()) < 0){
+        perror("fork");
+        exit(1);
     }
+    if(pid == 0){
+        printf("child process\n");
+        sleep(2);
+        exit(2);
+    }
+    printf("parent process\n");
+    while(waitid(P_PID, pid, &infop, WEXITED) != 0){
+        printf("parent still wating...\n");
+    }
+    printf("child's PID: %d\n", infop.si_pid);
+    printf("child's UID: %d\n", infop.si_uid);
+    printf("child's Code: %d\n", infop.si_code);
+    printf("child's status: %d\n", infop.si_status);
 }

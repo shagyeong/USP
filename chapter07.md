@@ -492,16 +492,137 @@ child's exit status: 2
 #include<sys/wait.h>
 pid_t waitpid(pid_t pid, int* wstatus, int optons);
 ```
+- 인자로 PID를 지정해 해당 자식 프로세스 종료를 기다림
+- status: 자식 프로세스의 종료 상태값 저장
+#### pid
+- -1보다 작은 음수: GID 지정(절대값)
+- -1: 임의의 자식 프로세스
+- 0: 호출한 프로세스와 같은 프로세스 그룹에 속한 임의의 프로세스
+- 0보다 큰 양수: 자식 프로세스의 PID 지정
+#### options
+- <sys/wait.h>에 정의되어 있음
+- OR 연산으로 연결해 지정 가능
+- WCONTINUED: 수행 중인 자식 프로세스의 상태값 리턴
+- WNOHANG: pid로 지정한 자식 프로세스의 상태값을 즉시 리턴받을 수 없어도 이를 호출한 프로세스의 실행을 블로킹하지 않고 다른 작업을 수행하게 함
+- WNOWAIT: 상태값을 리턴한 프로세스가 대기 상태로 머물 수 있도록 함
+- WUNTRACED: 실행을 중단한 자식 프로세스의 상태값 리턴
 #### 예제: 동기화할 프로세스 지정(watipid(2))
 ```C
+#include<sys/types.h>
+#include<sys/wait.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(void){
+    int status;
+    pid_t pid;
+    
+    if((pid = fork()) < 0){
+        perror("fork");
+        exit(1);
+    }
+    if(pid == 0){
+        printf("child process\n");
+        sleep(3);
+        exit(3);
+    }
+
+    printf("parent process\n");
+    while(waitpid(pid, &status, WNOHANG) == 0){
+        printf("parent still wating...\n");
+        sleep(1);
+    }
+    printf("child exit status: %d\n", status >> 8);
+}
 ```
 ```
+$ ./test
+parent process
+parent still wating...
+child process
+parent still wating...
+parent still wating...
+parent still wating...
+child exit status: 3
 ```
-#### 동기화할 프로세스 지정: watiid(2)
+#### 동기화할 프로세스 지정: waitid(2)
 ```C
+#include<sys/types.h>
+#include<sys/wait.h>
+int waitid(idtype_t idtype, id_t id, siginfo_t* infop, int options);
 ```
+- waitpid(2)와 비교해 더 세부적으로 자식 프로세스 지정 가능
+- 0 리턴: 성공
+- -1 리턴: 오류 발생
+- idtype: 종료를 기다리는 자식 프로세스 유형 정의
+- id: 식별 번호
+- infop: sifinfo_t 구조체 포인터
+- options: 리턴 조건 지정
+#### idtype
+- idtype: 기다리는 자식 프로세스 지정
+- P_PID: pid와 id가 일치하는 자식 프로세스
+- P_GID: gid와 id가 일치하는 자식 프로세스
+- P_ALL: 모든 자식 프로세스를 기다림(id 무시)
+#### id
+- (waitpid(2)와 동일하게) 식별 번호 지정
+#### infop
+- infop: 성공시 결과를 저장하는 siginfo_t 구조체 포인터
+- si_pid: 자식 프로세스의 PID
+- si_uid: 자식 프로세스의 UID
+- si_signo: 시그널을 항상 SIGCHLD 설정
+- si_status: 자식 프로세스의 종료 상태값
+- si_code: 자식 프로세스가 종료된 이유 코드 저장
+    - CLD_EXITED: 자식 프로세스가 _exit(2)를 호출해 종료
+    - CLD_KILLED: 자식 프로세스가 시그널을 받고 종료
+    - CLD_DUMPED: 자식 프로세스가 시그널을 받고 종료하고 코어 덤프 수행
+    - CLD_STOPPED: 자식 프로세스가 시그널을 받고 중단된 상태
+    - CLD_CONTINUE: SIGCONT 시그널을 받고 자식 프로세스가 계속 실행
+#### options
+- options: 리턴 조건 - OR 연산으로 연결 가능
+- WEXITED: 자식 프로세스가 종료될 때까지 기다린다
+- WSTOPPED: 시그널을 받아 중단된 자식 프로세스를 기다린다
+- WCONTINUED: 시그널을 받아 다시 수행 중인 자식 프로세스를 기다린다
+- WNOHANG: pid로 지정한 자식 프로세스의 상태값을 즉시 리턴받을 수 없어도 이를 호출한 프로세스의 실행을 블로킹하지 않고 다른 작업을 수행하게 함(waitpid(2)와 같음)
+- WNOWAIT: 상태값을 리턴한 프로세스가 대기 상태로 머물 수 있도록 한다
 #### 예제: 동기화할 프로세스 지정(watiid(2))
 ```C
+#include<sys/types.h>
+#include<sys/wait.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include<stdio.h>
+
+int main(void){
+    int status;
+    pid_t pid;
+    siginfo_t infop;
+
+    if((pid = fork()) < 0){
+        perror("fork");
+        exit(1);
+    }
+    if(pid == 0){
+        printf("child process\n");
+        sleep(2);
+        exit(2);
+    }
+    printf("parent process\n");
+    while(waitid(P_PID, pid, &infop, WEXITED) != 0){
+        printf("parent still wating...\n");
+    }
+    printf("child's PID: %d\n", infop.si_pid);
+    printf("child's UID: %d\n", infop.si_uid);
+    printf("child's Code: %d\n", infop.si_code);
+    printf("child's status: %d\n", infop.si_status);
+}
 ```
 ```
+$ ./test
+parent process
+child process
+child's PID: 13094
+child's UID: 1000
+child's Code: 1
+child's status: 2
 ```
