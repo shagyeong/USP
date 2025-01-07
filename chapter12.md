@@ -206,6 +206,159 @@ struct servent* getservbyport(int port, const char* proto);
 - proto: 프로토콜 - 'tcp' 또는 'udp'
 
 ## 12.3 소켓 프로그래밍
+### 12.3.0 개요
+#### 소켓
+- 소켓: 응용 계층-전송 계층간 프로그래밍 인터페이스
+### 12.3.1 소켓의 종류
+#### 유닉스 도메인 소켓
+- 유닉스 도메인 소켓: 같은 호스트에서 프로세스간 통신에 사용
+- 주소 패밀리명: AF_UNIX
+#### 인터넷 소켓
+- 인터넷 소켓: 인터넷을 통해 다른 호스트와 통신에 사용
+- 주소 패밀리명: AF_INET
+### 12.3.2 소켓의 통신 방식
+#### 전송 계층 프로토콜
+- TCP: SOCK_STREAM
+- UDP: SOCK_DGRAM
+#### 통신 유형
+- AF_UNIX - SOCK_STREAM
+- AF_UNIX - SOCK_DGRAM
+- AF_INET - SOCK_STREAM
+- AF_INET - SOCK_DGRAM
+### 12.3.3 소켓 주소 구조체
+#### 유닉스 도메인 소켓 구조체
+```C
+struct sockaddr_un{
+    _kernel_sa_family_t sun_family; //주소 패밀리명(AF_UNIX)
+    char sun_path[UNIX_PATH_MAX];   //경로명
+}
+```
+#### 인터넷 소켓 구조체
+```C
+struct sockaddr_in{
+    _kernal_sa_family_t sin_family; //주소 패밀리명(AF_INET)
+    _be16 sin_port;                 //포트 번호
+    struct in_addr sin_addr;        //인터넷 주소
+}
+struct in_addr{
+    _be32 s_addr;   //BE 32비트 주소
+}
+```
+### 12.3.4 바이트 순서 함수
+#### 바이트 오더링
+- BE(big endian): 상위 주소(주소값이 작음)에 상위 바이트를 저장
+- LE(little endian): 상위 주소에 하위 바이트를 저장
+#### NBO(network byte ordering)
+- NBO: TCP/IP 프로토콜의 바이트 오더링
+- 반드시 BE 사용
+#### HBO(host byte ordering)
+- HBO: 호스트의 바이트 오더링
+#### 바이트 오더링 함수
+```C
+unit32_t htonl(unit32_t hostlong);
+unit16_t htons(unit16_t hostshort);
+unit32_t ntohl(unit32_t netlong);
+unit16_t ntohs(unit16_t netshort);
+```
+- h: 호스트
+- n: 네트워크
+- l: long(32비트)
+- s: short(16비트)
+#### 예제: NBO-HBO 변환(ntohs(3))
+- servent 구조체는 NBO 형태로 저장
+- test.c
+    ```C
+    #include<netdb.h>
+    #include<stdio.h>
+
+    int main(void){
+        struct servent* port;
+        setservent(0);
+        for(int n = 0; n < 5; n++){
+            port = getservent();
+            printf("name=%s, port=%d\n", port->s_name, ntohs(port->s_port));
+        }
+    }
+    ```
+- demo
+    ```
+    $ ./test
+    name=tcpmux, port=1
+    name=echo, port=7
+    name=echo, port=7
+    name=discard, port=9
+    name=discard, port=9
+    ```
+#### 예제: HBO-NBO 변환(htons(3))
+- test.c
+    ```C
+    #include<netdb.h>
+    #include<stdio.h>
+
+    int main(void){
+        struct servent* port;
+        port = getservbyport(htons(21), "tcp");
+        printf("name=%s, port=%d\n", port->s_name, ntohs(port->s_port));
+    }
+    ```
+- demo
+    ```
+    t$ ./test
+    name=ftp, port=21
+    ```
+### 12.3.5 IP 주소 변환 함수
+#### 개요
+- 시스템 외부로 출력시: 점으로 구분된 형태 사용
+- 시스템 내부: 이진 값으로 바꾸어 저장
+#### IP 주소 변환: inet_addr(3), inet_ntoa(3)
+- inet_addr(3)
+    ```C
+    #include<sys/socket.h>
+    #include<netinet/in.h>
+    #include<arpa/inet.h>
+    in_addr_t inet_addr(const char* cp);
+    ```
+    - 문자열 → 이진값
+- inet_ntoa(3)
+    ```C
+    #include<arpa/inet.h>
+    char* inet_ntoa(const struct in_addr in);
+    ```
+    - 이진값 → 문자열
+#### 예제: IP 주소 변환(inet_addr(3), inet_ntoa(3))
+- test.c
+    ```C
+    #include<sys/socket.h>
+    #include<arpa/inet.h>
+    #include<netdb.h>
+    #include<stdlib.h>
+    #include<stdio.h>
+    #include<string.h>
+
+    int main(void){
+        in_addr_t addr;
+        struct hostent* hp;
+        struct in_addr in;
+        if((addr = inet_addr("8.8.8.8")) == (in_addr_t)-1){
+            printf("error: inet_addr(8.8.8.8)\n");
+            exit(1);
+        }
+        hp = gethostbyaddr((char*)&addr, 4, AF_INET);
+        if(hp == NULL){
+            printf("host information not found\n");
+            exit(2);
+        }
+        printf("name=%s\n", hp->h_name);
+        memcpy(&in.s_addr, *hp->h_addr_list, sizeof(in.s_addr));
+        printf("IP=%s\n", inet_ntoa(in));
+    }
+    ```
+- demo
+    ```
+    $ ./test
+    name=dns.google
+    IP=8.8.8.8
+    ```
 
 ## 12.4 소켓 인터페이스 함수
 
