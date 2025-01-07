@@ -1,29 +1,11 @@
-#include<sys/types.h>
-#include<sys/wait.h>
-#include<unistd.h>
-#include<stdlib.h>
+#include<netdb.h>
 #include<stdio.h>
 
 int main(void){
-    int status;
-    pid_t pid;
-    siginfo_t infop;
-
-    if((pid = fork()) < 0){
-        perror("fork");
-        exit(1);
+    struct servent* port;
+    setservent(0);
+    for(int n = 0; n < 5; n++){
+        port = getservent();
+        printf("name=%s, port=%d\n", port->s_name, port->s_port);
     }
-    if(pid == 0){
-        printf("child process\n");
-        sleep(2);
-        exit(2);
-    }
-    printf("parent process\n");
-    while(waitid(P_PID, pid, &infop, WEXITED) != 0){
-        printf("parent still wating...\n");
-    }
-    printf("child's PID: %d\n", infop.si_pid);
-    printf("child's UID: %d\n", infop.si_uid);
-    printf("child's Code: %d\n", infop.si_code);
-    printf("child's status: %d\n", infop.si_status);
 }
