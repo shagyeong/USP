@@ -483,20 +483,151 @@ ssize_t recvfrom(int sockfd, const void* buf, size_t len, int flags, const struc
 ### 12.5.1 유닉스 도메인 소켓 예제
 #### server
 ```C
+#include<sys/socket.h>
+#include<sys/un.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include<stdio.h>
+#include<string.h>
+
+#define SOCKET_NAME "shagyeong"
+
+int main(void){
+    char buf[256];
+    struct sockaddr_un server;
+    struct sockaddr_un client;
+    int ssd; int csd;    //서버 sd, accept할 클라이언트의 sd
+    int slen; int clen;  //서버, 클라이언트 length
+    //서버 소켓 생성(호스트 내부 TCP 통신)
+    ssd = socket(AF_UNIX, SOCK_STREAM, 0);
+    memset((char*)&server, 0, sizeof(struct sockaddr_un));
+    server.sun_family = AF_UNIX;
+    strcpy(server.sun_path, SOCKET_NAME);
+    slen = sizeof(server.sun_family) + strlen(server.sun_path);
+    //포트 연결
+    bind(ssd, (struct sockaddr*)&server, slen);
+    //요청 대기
+    listen(ssd, 5);
+    printf("wating...\n");
+    //요청 수락
+    csd = accept(ssd, (struct sockaddr*)&client, &clen);
+    //메시지 수신
+    recv(csd, buf, sizeof(buf), 0);
+    printf("received message: %s\n", buf);
+    //소켓 반납
+    close(ssd);
+    close(csd);
+}
 ```
 #### client
 ```C
+#include<sys/socket.h>
+#include<sys/un.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include<stdio.h>
+#include<string.h>
+
+#define SOCKET_NAME "shagyeong"
+
+int main(void){
+    char buf[256];
+    struct sockaddr_un server;
+    int csd;
+    int clen;
+    //클라이언트 소켓 생성(호스트 내부 TCP 통신)
+    csd = socket(AF_UNIX, SOCK_STREAM, 0);
+    memset((char*)&server, '\0', sizeof(server));
+    server.sun_family = AF_UNIX;
+    strcpy(server.sun_path, SOCKET_NAME);
+    clen = sizeof(server.sun_family) + strlen(server.sun_path);
+    //연결 요청
+    connect(csd, (struct sockaddr*)&server, clen);
+    //메시지 송신
+    strcpy(buf, "test message");
+    send(csd, buf, sizeof(buf), 0);
+    //소켓 반납
+    close(csd);    
+}
 ```
 #### demo
 ```
+$ ./server
+wating...
+```
+```
+$ ./client
+```
+```
+$ ./server
+wating...
+received message: test message
 ```
 ### 12.5.2 인터넷 소켓 예제
 #### server
 ```C
+#include<sys/socket.h>
+#include<sys/un.h>
+#include<unistd.h>
+#include<arpa/inet.h>
+#include<stdlib.h>
+#include<stdio.h>
+#include<string.h>
+
+#define PORTNUM 9000
+
+int main(void){
+    char buf[256];
+    struct sockaddr_in sin, cli;
+    int sd, ns, clientlen = sizeof(cli);
+    //소켓 생성
+    sd = socket(AF_INET, SOCK_STREAM, 0);
+    memset((char*)&sin, '\0', sizeof(sin));
+    sin.sin_family = AF_INET;
+    sin.sin_port = htons(PORTNUM);
+    sin.sin_addr.s_addr = inet_addr("xxx.xxx.xxx.xxx");
+    //포트 매핑
+    bind(sd, (struct sockaddr*)&sin, sizeof(sin));
+    //요청 대기
+    listen(sd, 5);
+    //요청 수락
+    ns = accept(sd, (struct sockaddr*)&cli, *clientlen);
+    //메시지 송신
+    sprinf(buf, "your IP: %s\n", inet_ntoa(cli.sin_addr));
+    send(ns, buf, strlen(buf) + 1, 0);
+    //소켓 반납
+    close(ns);
+    close(sd);
+}
 ```
 #### client
 ```C
-```
-#### demo
-```
+#include<sys/socket.h>
+#include<sys/un.h>
+#include<unistd.h>
+#include<arpa/inet.h>
+#include<stdlib.h>
+#include<stdio.h>
+#include<string.h>
+
+#define PORTNUM 9000
+
+int main(void){
+    int sd;
+    char buf[256];
+    struct sockaddr_in sin;
+    //소켓 생성
+    sd = socket(AF_INET, SOCK_STREAM, 0);
+    memset((char*&sin, '\0', sizeof(sin));
+    sin.sin_family = AF_INET;
+    sin.sin_port = htons(PORTNUM);
+    sin.sin_addr.s_addr = inet_addr("xxx.xxx.xxx.xxx");
+    //연결 요청
+    connect(sd, (struct sockaddr*)&sin), sizeof(sin));
+    //메시지 수신
+    recv(sd, buf, sizeof(buf), 0);
+    printf("from server: %s\n", buf);
+    //소켓 반납
+    close(sd);
+}
 ```
