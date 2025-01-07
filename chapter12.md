@@ -361,5 +361,122 @@ unit16_t ntohs(unit16_t netshort);
     ```
 
 ## 12.4 소켓 인터페이스 함수
+### 12.4.1 소켓 인터페이스 함수
+#### 개요
+- 주요 함수
+    |함수|사용측|기능|
+    |---|---|---|
+    |socket(2)||소켓 fd 생성|
+    |bind(2)|서버|소켓 fd를 IP주소/포트 번호와 결합|
+    |listen(2)|서버|클라이언트 연결 요청 대기|
+    |connect(2)|클라이언트|서버 접속 요청|
+    |accept(2)|서버|연결 요청 수락|
+    |send(2)||데이터 송신(SOCK_STREAM)|
+    |recv(2)||데이터 수신(SOCK_STREAM)|
+    |sendto(2)||데이터 송신(SOCK_DGRAM)|
+    |recvfrom(2)||데이터 수신(SOCK_DGRAM)|
+    |close(2)||소켓 fd 종료|
+#### 소켓 fd 생성: socket(2)
+```C
+#include<sys/types.h>
+#include<sys/socket.h>
+int socket(int domain, int type, int protocol);
+```
+- domain: 도메인 주소 패밀리(소켓 종류)
+- type: 통신 방식(TCP/UDP)
+- protocol: 소켓에 이용할 프로토콜 - 0 지정시 시스템이 결정
+#### 소켓 fd를 IP주소/포트 번호와 결합: bind(2)
+```C
+#include<sys/types.h>
+#include<sys/socket.h>
+int bind(int sockfd, const struct sockaddr* addr, socklen_t addrlen);
+```
+- 소켓 fd - sockaddr 인스턴스간 연결 수행
+- sockaddr: 소켓 종류, IP 주소, 포트 번호 지정
+- sockfd: socket(2)로 생성한 소켓 fd
+- addr: 소켓 이름 표현 구조체
+- addrlen: addr의 크기
+#### 클라이언트 연결 요청 대기: listen(2)
+```C
+#include<sys/types.h>
+#include<sys/socket.h>
+int listen(int sockfd, int backlog);
+```
+- sockfd: 소켓 fd
+- backlog: 최대 허용 클라이언트 수
+#### 서버 접속 요청: connect(2)
+```C
+#include<sys/types.h>
+#include<sys/socket.h>
+int connect(int sockfd, const struct sockaddr* addr, socklen_t addrlen);
+```
+- sockfd: 소켓 fd
+- addr: 접속하려는 서버의 IP 정보
+- addrlen: addr의 크기
+#### 연결 요청 수락: accept(2)
+```C
+#include<sys/types.h>
+#include<sys/socket.h>
+int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen);
+```
+- sockfd: 소켓 fd
+- addr: 접속을 수락한 클라이언트 IP 정보
+- addrlen: addr 크기
+#### 데이터 송신: send(2)
+```C
+#include<sys/types.h>
+#include<sys/socket.h>
+ssize_t send(int sockfd, const void* buf, size_t len, int flags);
+```
+- sockfd: 소켓 fd
+- buf: 전송할 메시지 저장 주소
+- len: 메시지의 크기
+- flags: 데이터 송신 방법을 지정한 플래그
+    - MSG_OOB: out of band 데이터로 처리 - 수신 확인을 받지 않아도 다른 메시지를 계속 전송
+    -MSG_DONTROUTE: 데이터 라우팅 설정 해제
+#### 데이터 수신: recv(2)
+```C
+#include<sys/types.h>
+#include<sys/socket.h>
+ssize_t recv(int sockfd, void* buf, size_t len, int flgas)
+```
+- sockfd: 소켓 fd
+- buf: 전송받은 메시지 저장 주소
+- len: 메시지의 크기
+- flags: 데이터 송신 방법을 지정한 플래그
+#### 데이터 송신: sendto(2)
+```C
+#include<sys/types.h>
+#include<sys/socket.h>
+ssize_t sendto(int sockfd, const void* buf, size_t len, int flags, const struct sockaddr* dest_addr, socklen_t addrlen);
+```
+- sockfd: 소켓 fd
+- buf: 전송할 메시지 저장 주소
+- len: 메시지의 크기
+- flags: 데이터 송신 방법을 지정한 플래그
+- dest_addr: 메시지를 받을 호스트의 주소
+- addrlen: dest_addr의 크기
+#### 데이터 수신: recvfrom(2)
+```C
+#include<sys/types.h>
+#include<sys/socket.h>
+ssize_t recvfrom(int sockfd, const void* buf, size_t len, int flags, const struct sockaddr* src_addr, socklen_t addrlen)
+```
+- sockfd: 소켓 fd
+- buf: 전송받은 메시지 저장 주소
+- len: 메시지의 크기
+- flags: 데이터 송신 방법을 지정한 플래그
+- dest_addr: 메시지를 보내는 호스트의 주소
+- addrlen: src_addr의 크기
+### 12.4.2 소켓 인터페이스 함수 호출 순서
+#### 소켓 인터페이스 함수 호출 순서
+|서버|기능|클라이언트|
+|---|---|---|
+|socket()||socket()|
+|bind()|||
+|listen()|||
+|accept()|연결|connect()|
+|send()/recv()|데이터 송수신|send()/recv()|
+|close()||close()|
 
 ## 12.5 소켓 프로그래밍 예제
