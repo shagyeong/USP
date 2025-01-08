@@ -1,33 +1,40 @@
 #include<sys/socket.h>
-#include<sys/un.h>
 #include<unistd.h>
+#include<netinet/in.h>
 #include<arpa/inet.h>
 #include<stdlib.h>
 #include<stdio.h>
 #include<string.h>
 
-#define PORTNUM 9000
+#define PORTNUM 9003
 
 int main(void){
-    char buf[256];
-    struct sockaddr_in sin, cli;
-    int sd, ns, clientlen = sizeof(cli);
-    //소켓 생성
-    sd = socket(AF_INET, SOCK_STREAM, 0);
-    memset((char*)&sin, '\0', sizeof(sin));
-    sin.sin_family = AF_INET;
-    sin.sin_port = htons(PORTNUM);
-    sin.sin_addr.s_addr = inet_addr("127.0.0.1");
-    //포트 매핑
-    bind(sd, (struct sockaddr*)&sin, sizeof(sin));
-    //요청 대기
-    listen(sd, 5);
-    //요청 수락
-    ns = accept(sd, (struct sockaddr*)&cli, &clientlen);
-    //메시지 송신
-    sprintf(buf, "your IP: %s\n", inet_ntoa(cli.sin_addr));
-    send(ns, buf, strlen(buf) + 1, 0);
-    //소켓 반납
-    close(ns);
-    close(sd);
+    struct sockaddr_in server, client;
+    int ssd, csd;
+    int clen = sizeof(client);
+    //서버 소켓 세팅
+    ssd = socket(AF_INET, SOCK_STREAM, 0);
+    memset((char*)&server, '\0', sizeof(server));
+    server.sin_family = AF_INET;
+    server.sin_port = htons(PORTNUM);
+    server.sin_addr.s_addr = inet_addr("127.0.0.1");
+    //바인딩
+    bind(ssd, (struct sockaddr*)&server, sizeof(server));
+    //연결 대기
+    listen(ssd, 5);
+    //요청 처리
+    while(1){
+        csd = accept(ssd, (struct sockaddr*)&client, &clen);
+        switch(fork()){
+            case 0:
+                printf("fork client\n");
+                close(ssd);
+                //입출력 전환: 표준 입출력 → 클라이언트 sd
+                dup2(csd, STDIN_FILENO);
+                dup2(csd, STDOUT_FILENO);
+                execl("./test", "test", (char*)0);
+                close(csd);
+        }
+        close(ssd);
+    }
 }
