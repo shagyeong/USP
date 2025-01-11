@@ -20,7 +20,7 @@ int on_exit(void (*fucntion)(int, void*), void* arg);   //종료시 수행할 �
 ```
 ### 7.1.3 exec 함수군
 - 인자로 받은 다른 프로그램을 자신을 호출한 프로세스의 메모리에 덮어씀
-- 기존 프로그램은 중지되어 업어짐
+- 기존 프로그램은 중지되어 없어짐
 - 새로 덮어쓴 프로그램 실행
 - fork(2)와 연결해 자식 프로세스가 새로운 프로그램을 실행하도록 함
 ```C
@@ -63,7 +63,8 @@ int main(void){
     ret = system("./hello");
     printf("ret value: %d\n", ret);
 }
-``````
+```
+```
 $ ./test
 ret value: 0
 hello
