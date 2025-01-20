@@ -147,27 +147,27 @@ int kill(pid_t pid, int sig);
 - -1: 송신측 프로세스의 유효 사용자 ID가 root가 아닌 경우 특수한 프로세스를 제외하고 송신측 프로세스의 실제 사용자 ID가 유효 사용자 ID와 같은 모든 프로세스에 시그널을 보냄
 #### 예제: 시그널 보내기(kill(2))
 - test.c
-  ```C
-  #include<sys/types.h>
-  #include<unistd.h>
-  #include<signal.h>
-  #include<stdio.h>
+    ```C
+    #include<sys/types.h>
+    #include<unistd.h>
+    #include<signal.h>
+    #include<stdio.h>
 
-  int main(void){
-      printf("before SIGCONT signal to parent\n");
-      kill(getppid(), SIGCONT);
-      printf("before SIGQUIT signal to me\n");
-      kill(getpid(), SIGQUIT);
-      printf("after SIGQUIT signal\n");
-  }
-  ```
+    int main(void){
+        printf("before SIGCONT signal to parent\n");
+        kill(getppid(), SIGCONT);
+        printf("before SIGQUIT signal to me\n");
+        kill(getpid(), SIGQUIT);
+        printf("after SIGQUIT signal\n");
+    }
+    ```
 - demo
-  ```
-  $ ./test
-  before SIGCONT signal to parent
-  before SIGQUIT signal to me
-  끝내기 (코어 덤프됨)
-  ```
+    ```
+    $ ./test
+    before SIGCONT signal to parent
+    before SIGQUIT signal to me
+    끝내기 (코어 덤프됨)
+    ```
 #### 시그널 보내기: raise(3)
 ```C
 #include<signal.h>
@@ -187,8 +187,146 @@ void abort(void);
 - 최소 해당 프로세스가 연 파일을 모두 닫음
 
 ## 8.4 시그널 기본 처리
+### 8.4.1 시그널 핸들러 지정
+#### 시그널 핸들러 지정: signal(3)
+```C
+#include<signal.h>
+typedef void(*sighandler_t)(int);
+sighandler_t signal(int signum, sighandler_t handler);
+```
+- signum: 시그널 핸들러로 처리할 시그널
+- handler: 시그널 핸들러 이름
+- SIGKILL, SIGSTOP을 제외하고 지정 가능
+#### signal(3) 인자 handler
+- 아래 세 가지 중 하나 설정
+- 시그널 핸들러 주소
+- SIG_IGN: 시그널을 무시하도록 지정
+- SIG_DFL: 시그널의 기본 처리 방법을 수행하도록 지정
+#### 예제: 시그널 핸들러 지정(signal(3))
+- test.c
+    ```C
+    #include<unistd.h>
+    #include<signal.h>
+    #include<stdlib.h>
+    #include<stdio.h>
+
+    void test(int signo){
+        printf("signal handler signum: %d\n", signo);
+        psignal(signo, "received signal");
+    }
+
+    int main(void){
+        void (*hand)(int);
+        hand = signal(SIGINT, test);
+        if(hand == SIG_ERR){
+            perror("signal");
+            exit(1);
+        }
+        printf("wait 1st Ctrl + C: SIGINT\n");
+        pause();
+        printf("after 1st signal handler\n");
+        printf("wait 2nd Ctrl + C: SIGINT\n");
+        pause();
+        printf("after 2nd signal handler\n");
+    }
+    ```
+- demo
+    ```
+    $ ./test
+    wait 1st Ctrl + C: SIGINT
+    ^C
+    signal handler signum: 2
+    received signal: Interrupt
+    after 1st signal handler
+    wait 2nd Ctrl + C: SIGINT
+    ^C
+    signal handler signum: 2
+    received signal: Interrupt
+    after 2nd signal handler
+    ```
+- pause(2): 시그널이 입력될 때까지 대기
+#### 시그널 핸들러 지정: sigset(2)
+```C
+#include<signal.h>
+sighandler_t sigset(int sig, sighandler_t disp);
+```
+- sig: 시그널 핸들러로 처리할 시그널
+- disp: 시그널 핸들러 이름
+- 리눅스: 사용을 권장하지 않음
+- 솔라리스: signal(2)과 달리 한번 호출된 후 기본 동작으로 재설정하지 않음
 
 ## 8.5 시그널 집합
+### 8.5.1 시그널 집합
+#### 시그널 집합
+- 시그널 집합: 시그널 설정에 대한 비트 마스크
+- 0: 시그널 설정되지 않음
+- 1: 시그널 설정됨
+#### 구조체 sigset_t
+```C
+typedef struct{
+    unsigned long __val[_NSIG_WORDS];
+}sigset_t;
+```
+### 8.5.2 시그널 집합 처리 함수
+#### 시그널 집합 비우기: sigemptyset(3)
+```C
+#include<signal.h>
+int sigemptyset(sigset_t* set);
+```
+- 시그널 집합의 모든 비트를 0으로 설정
+- 성공시: 0 리턴
+- 실패시: -1 리턴
+#### 시그널 집합에 모든 시그널 설정: sigfillset(3)
+```C
+#include<signal.h>
+int sigfillset(sigset_t* set)
+```
+- 시그널 집합의 모든 비트를 1로 설정
+- 성공시: 0 리턴
+- 실패시: -1 리턴
+#### 시그널 집합에 시그널 설정 추가: sigaddset(3)
+```C
+#include<signal.h>
+int sigaddset(sigset_t* set, int signum);
+```
+- 인자로 지정한 시그널에 대한 비트를 1로 설정
+- 성공시: 0 리턴
+- 실패시: -1 리턴
+#### 시그널 집합에서 시그널 설정 삭제: sigdelset(3)
+```C
+#include<signal.h>
+int sigdel(sigset_t* set, int signum);
+```
+- 인자로 지정한 시그널에 대한 비트를 0으로 설정
+- 성공시: 0 리턴
+- 실패시: -1 리턴
+#### 시그널 집합에 설정된 시그널 확인: sigismember(3)
+```C
+#include<signal.h>
+int sigismember(const sigset_t* set, int signum);
+```
+- 인자로 지정한 시그널에 대한 설정(비트) 리턴
+#### 예제: 시그널 집합 처리(sigemptyset(3), sigaddset(3), sigismember(3))
+- test.c
+    ```C
+    #include<signal.h>
+    #include<stdio.h>
+
+    int main(void){
+        sigset_t st;
+        sigemptyset(&st);
+        sigaddset(&st, SIGINT);
+        //sigaddset(&st, SIGQUIT);
+        printf("SIGINT: %d\n", sigismember(&st, SIGINT));
+        printf("SIGQUIT: %d\n", sigismember(&st, SIGQUIT));
+    }
+    ```
+- demo
+    ```
+    $ ./test
+    SIGINT: 1
+    SIGQUIT: 0
+    ```
 
 ## 8.6 sigaction( ) 함수의 활용
 

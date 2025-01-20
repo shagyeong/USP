@@ -1,12 +1,11 @@
-#include<sys/types.h>
-#include<unistd.h>
 #include<signal.h>
 #include<stdio.h>
 
 int main(void){
-    printf("before SIGCONT signal to parent\n");
-    kill(getppid(), SIGCONT);
-    printf("before SIGQUIT signal to me\n");
-    kill(getpid(), SIGQUIT);
-    printf("after SIGQUIT signal\n");
+    sigset_t st;
+    sigemptyset(&st);
+    sigaddset(&st, SIGINT);
+    //sigaddset(&st, SIGQUIT);
+    printf("SIGINT: %d\n", sigismember(&st, SIGINT));
+    printf("SIGQUIT: %d\n", sigismember(&st, SIGQUIT));
 }
