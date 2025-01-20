@@ -67,7 +67,7 @@ int sigignore(int sig);
 ### 8.2.1 시그널 발생
 #### 시그널 발생
 - 프로그램에서 예외적 상황 발생(0으로 나누기 등)
-- 시그널을 보낼수 있는 함수(kill(1) 등)를 이용해 프로세스에서 다른 프로세스로 시그널을 보내는 경우
+- 시그널을 보낼수 있는 함수(kill(2) 등)를 이용해 프로세스에서 다른 프로세스로 시그널을 보내는 경우
 - 사용자가 인터럽트 키(ctrl + c 등)를 입력한 경우
 ### 8.2.2 시그널 처리 방법
 #### 시그널 처리 방법
@@ -131,6 +131,60 @@ int sigignore(int sig);
   |SIGUNUSED|31|무시|향후 사용을 위해 예약된 번호|
 
 ## 8.3 시그널 보내기
+### 8.3.1 시그널 보내기
+#### 시그널 보내기: kill(2)
+```C
+#include<sys/types.h>
+#include<signal.h>
+int kill(pid_t pid, int sig);
+```
+- pid: 시그널을 받을 프로세스의 PID
+- sig: 지정한 프로세스에 보내는 시그널 - 0 지정시 시그널을 보내지 않고 오류 확인
+#### kill(2) 인자 pid
+- 0보다 큰 수: pid로 지정한 프로세스에 시그널을 보냄
+- -1이 아닌 음수: PGID에 속하고 시그널을 보낼 권한이 있는 모든 프로세스에 시그널을 보냄
+- 0: 송신측 프로세스 PGID에 속하는 모든 프로세스에 시그널을 보냄(특수한 프로세스(스케줄러 등)는 제외)
+- -1: 송신측 프로세스의 유효 사용자 ID가 root가 아닌 경우 특수한 프로세스를 제외하고 송신측 프로세스의 실제 사용자 ID가 유효 사용자 ID와 같은 모든 프로세스에 시그널을 보냄
+#### 예제: 시그널 보내기(kill(2))
+- test.c
+  ```C
+  #include<sys/types.h>
+  #include<unistd.h>
+  #include<signal.h>
+  #include<stdio.h>
+
+  int main(void){
+      printf("before SIGCONT signal to parent\n");
+      kill(getppid(), SIGCONT);
+      printf("before SIGQUIT signal to me\n");
+      kill(getpid(), SIGQUIT);
+      printf("after SIGQUIT signal\n");
+  }
+  ```
+- demo
+  ```
+  $ ./test
+  before SIGCONT signal to parent
+  before SIGQUIT signal to me
+  끝내기 (코어 덤프됨)
+  ```
+#### 시그널 보내기: raise(3)
+```C
+#include<signal.h>
+int raise(int sig);
+```
+- 호출한 프로세스에 인자로 지정된 시그널을 보냄
+- 시그널 핸들러 호출시 핸들러 수행 종료까지 리턴하지 않음
+- 성공시: 0 리턴
+- 실패시: -1 리턴
+#### 시그널 보내기: abort(3)
+```C
+#include<stdlib.h>
+void abort(void);
+```
+- 호출한 프로세스에 SIGABRT 시그널을 보냄
+- 프로세스를 비정상 종료시키고 코어 덤프 파일 생성
+- 최소 해당 프로세스가 연 파일을 모두 닫음
 
 ## 8.4 시그널 기본 처리
 
