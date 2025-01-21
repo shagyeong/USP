@@ -358,7 +358,37 @@ int fcntl(int fd, int cmd, /* arg */);
     hello world
     ```
 ### 4.2.7 파일 삭제
+#### 파일 삭제: remove(3)
+```C
+#include<stdio.h>
+int remove(const char* pathname);
+```
+- remove(3)이 내부에서 시스템 호출 사용
+- 삭제 대상이 파일: unlink(2) 호출
+- 삭제 대상이 디렉터리: rmdir(2) 호출
+#### 예제: 파일 삭제(remove(3))
+- test.c
+    ```C
+    #include<stdio.h>
+    int main(void){
+        remove("test.txt");
+    }
+    ```
+- demo
+    ```
+    $ ls
+    (...) test.txt
+    $ ls
+    (...)
+    ```
 ### 4.2.8 디스크 동기화
+#### 디스크 동기화 함수: fsync(3)
+```C
+#include<unistd.h>
+int fsync(int fd);
+```
+- 메모리에 위치한 파일 내용을 디스크로 보냄
+- 디스크에 쓰기 수행이 완료되기 전 리턴하지 않음
 
 ## 4.3 고수준 파일 입출력
 ### 4.3.1 fp
