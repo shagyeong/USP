@@ -251,22 +251,114 @@ off_t lseek(int fd, off_t offset, int whence);
     System Programming
     ```
 ### 4.2.5 fd 복사
-#### 파일 기술자 복사: dup(2)
+#### fd 복사: dup(2)
 ```C
 #include<unistd.h>
 int dup(int oldfd);
 ```
-- fd를 인자로 받아 새로운 fd 리턴
-
-
-#### 예제: 출력 리디렉션
+- 인자 fd가 가리키는 파일에 대해 새로운 fd 리턴
+- 할당할 수 있는 fd 중 가장 작은 값 리턴
+#### 예제: 출력 리디렉션(dup(3))
+- 표준 출력 fd(1)를 닫고 파일을 가리키도록 함
 - test.c
     ```C
+    #include<fcntl.h>
+    #include<unistd.h>
+    #include<stdlib.h>
+    #include<stdio.h>
+
+    int main(void){
+        int wfd; int wflags = O_WRONLY | O_APPEND; wfd = open("./test.txt", wflags);
+        int sfd; close(1); sfd = dup(wfd);
+        char buf[256] = "hello from write fd\n"; write(wfd, buf, 256);
+        printf("hello from standard output\n");
+        close(wfd);
+    }
     ```
 - demo
     ```
+    $ ./test
+    $ cat test.txt
+    Linux System Programming
+    hello from write fd
+    hello from standard output
+    ```
+#### fd 복사: dup2(3)
+```C
+#include<unistd.h>
+int dup2(int oldfd, int newfd);
+```
+- dup(3): 파일 기술자를 자동으로 할당
+- dup2(3): 파일 기술자를 지정(인자 oldfd)
+#### 예제: 출력 리디렉션(dup2(3))
+- test.c
+    ```C
+    #include<fcntl.h>
+    #include<unistd.h>
+    #include<stdlib.h>
+    #include<stdio.h>
+
+    int main(void){
+        int wfd; int wflags = O_WRONLY | O_APPEND;
+        wfd = open("./test.txt", wflags);
+        dup2(wfd, STDOUT_FILENO);
+        printf("hello from standard output\n");
+        close(wfd);
+    }
+    ```
+- demo
+    ```
+    $ ./test
+    $ cat test.txt
+    Linux System Programming
+    hello from standard output
     ```
 ### 4.2.6 fd 제어
+#### fd 제어: fcntl(2)
+```C
+#include<unistd.h>
+#include<fcntl.h>
+int fcntl(int fd, int cmd, /* arg */);
+```
+- cmd: 명령
+- arg: cmd에 따라 필요시 지정하는 인자
+- 파일이 열려있는 상태에서 플래그를 조정할 수 있다
+#### fcntl(2) 인자 cmd
+- <fcntl.h>에 정의되어 있다
+- F_GETFL: 상태 플래그 정보를 읽어온다
+- F_SETFL: 상태 플래그를 설정한다
+#### 예제: fd 제어(fcntl(2))
+- O_APPEND 플래그를 추가해 쓰기 수행
+- test.c
+    ```C
+    #include<sys/types.h>
+    #include<fcntl.h>
+    #include<unistd.h>
+    #include<stdlib.h>
+    #include<stdio.h>
+
+    int main(void){
+        char buf[256] = "hello world\n";
+        int fd; int flags = O_WRONLY;
+        fd = open("./test.txt", flags);
+        write(fd, buf, 256);
+
+        flags = fcntl(fd, F_GETFL);
+        flags |= O_APPEND;
+        fcntl(fd, F_SETFL, flags);
+
+        write(fd, buf, 256);
+        close(fd);
+    }
+    ```
+- demo
+    ```
+    $ cat test.txt
+    hello world
+    hello world
+    ```
+### 4.2.7 파일 삭제
+### 4.2.8 디스크 동기화
 
 ## 4.3 고수준 파일 입출력
 ### 4.3.1 fp
