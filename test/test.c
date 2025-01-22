@@ -1,27 +1,25 @@
-#include<stdio.h>
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<fcntl.h>
+#include<unistd.h>
 
 int main(int argc, char* argv[]){
-    long offset;
-    char buf[BUFSIZ]; int n;
-    FILE* rfp = fopen(argv[1], "r");
-
-    offset = ftell(rfp); printf("current offset: %d\n", (int)offset);
-    fread(buf, sizeof(char), 5, rfp);
-    printf("buf: %s\n", buf);
-
-    fseek(rfp, 1, SEEK_CUR);  //공백 건너뛰도록 오프셋 이동
-    offset = ftell(rfp); printf("current offset: %d\n", (int)offset);
-    fread(buf, sizeof(char), 6, rfp);
-    printf("buf: %s\n", buf);
-
-    fseek(rfp, 1, SEEK_CUR);
-    offset = ftell(rfp); printf("current offset: %d\n", (int)offset);
-    fread(buf, sizeof(char), 11, rfp);
-    printf("buf: %s\n", buf);
-
-    //rewind
-    rewind(rfp); offset = ftell(rfp);
-    printf("rewind offset: %d\n", (int)offset);
+    char row[1];
+    row[0] = 48;        //ASCII 48: '0'
     
-    fclose(rfp);
+    char buf[1]; int n;
+    int rflags = O_RDONLY;
+    int rfd = open(argv[1], rflags);
+    int wfd = STDOUT_FILENO;
+
+    write(wfd, "row 0: ", 7);
+    while((n = read(rfd, buf, 1)) != 0){
+        write(wfd, buf, 1);
+        if(buf[0] == 10){  //ASCII 10: new line
+            write(wfd, "row ", 4);
+            row[0]++; write(wfd, row, 1);
+            write(wfd, ": ", 2);
+        }
+    }
+    close(rfd);
 }
