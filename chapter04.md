@@ -755,3 +755,24 @@ int fileno(FILE* stream);
 ```
 
 ## 4.5 임시 파일 사용
+### 4.5.1 임시 파일명 생성
+#### 임시 파일명 생성: tmpnam(3)
+```C
+#include<stdio.h>
+char* tmpnam(char* s);
+```
+#### 탬플릿 지정 임시 파일명 생성: mktemp(3)
+```C
+#include<stdlib.h>
+char* mktemp(char* template);
+```
+### 4.5.2 임시 파일에 대한 파일 지시자 생성
+#### 임시 파일에 대한 파일 지시자 생성
+```C
+//fp 생성
+#include<stdio.h>
+FILE* tmpfile()
+//fd 생성
+#include<stdlib.h>
+int mkstemp(char* template);
+```
