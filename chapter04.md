@@ -735,5 +735,23 @@ int fflush(FILE* stream);
 - 버퍼에 있는 데이터를 파일에 기록
 
 ## 4.4 파일 기술자와 파일 포인터 변환
+### 4.4.0 개요
+#### 개요
+|기능|함수|
+|---|---|
+|파일 포인터 '생성'(fd → fp)|FILE* fdopen(nit fd, const char* mode);|
+|파일 기술자 '추출'(fp → fd)|int fileno(FILE* stream);|
+### 4.4.1 파일 포인터 생성
+#### 파일 포인터 생성: fdopen(3)
+```C
+#include<stdio.h>
+FILE* fdopen(nit fd, const char* mode);
+```
+### 4.4.2 파일 기술자 추출
+#### 파일 기술자 추출: fileno(3)
+```C
+#include<stdio.h>
+int fileno(FILE* stream);
+```
 
 ## 4.5 임시 파일 사용
