@@ -392,13 +392,347 @@ int fsync(int fd);
 
 ## 4.3 고수준 파일 입출력
 ### 4.3.1 fp
+#### fp
+- 파일 포인터: 고수준 파일 입출력 지시자 - 디스크에서 메모리로 읽어온 파일에 대한 주소 정보를 담은 포인터
 ### 4.3.2 파일 열기/닫기
+#### 파일 열기: fopen(3)
+```C
+#include<stdio.h>
+FILE* fopen(const char* pathname, const char* mode);
+```
+#### 열기 모드
+|모드|기능|
+|---|---|
+|r|읽기|
+|w|새로 쓰기|
+|a|추가 쓰기(append)|
+|rb|바이너리 파일 읽기|
+|wb|바이너리 파일 새로 쓰기|
+|ab|바이너리 파일 추가 쓰기|
+|r+|읽기/쓰기|
+|w+|쓰기/읽기|
+|a+|추가 쓰기/읽기|
+|rb+|바이너리 파일 읽기/쓰기|
+|wb+|바이너리 파일 쓰기/읽기|
+|ab+|바이너리 파일 추가 쓰기/읽기|
+#### 파일 닫기: fclose(3)
+```C
+#include<stdio.h>
+int fclose(FILE* stream);
+```
+- 메모리에 있는 파일 내용을 디스크에 저장 후 종료
+- 성공시: 0 리턴
+- 오류시: EOF 리턴
 ### 4.3.3 문자 기반 입출력
+#### 문자 기반 입력 함수: fgetc(3), getc(3), getchar(3), getw(3)
+```C
+#include<stdio.h>
+int fgetc(FILE* stream);
+int getc(FILE* stream);
+int getchar(void);
+int getw(FILE* stream);
+```
+- fgetc(3): fp가 가리키는 파일로부터 문자 한개를 unsigned char 형태로 읽어옴
+- getc(3): fgetc(3)와 동일한 기능 - 매크로로 구현
+- getchar(3): 표준 입력에서 문자 한개를 읽어옴 - getc(stdin)과 같음
+- getw(3): 파일에서 워드 단위로 읽어옴
+- 오류시: EOF 리턴
+#### 문자 기반 출력 함수: fputc(3), putc(3), putchar(3), putw(3)
+```C
+#include<stdio.h>
+int fputc(int c, FILE* stream);
+int putc(int c, FILE* stream);
+int putchar(int c);
+int putw(int w, FILE* stream);
+```
+- c, w: 입력할 문자/워드
+- 성공시: 해당 문자값 리턴
+- 오류시: EOF 리턴
+#### 예제: 문자 기반 입출력(fopen(3), fclose(3), fgetc(3), fputc(3))
+- test.c
+    ```C
+    #include<stdio.h>
+
+    int main(int argc, char* argv[]){
+        int c;
+        FILE* rfp = fopen(argv[1], "r");;
+        FILE* wfp = fopen(argv[2], "w");
+        while((c = fgetc(rfp)) != EOF){
+            fputc(c, wfp);
+        }
+        fclose(rfp);
+        fclose(wfp);
+    }
+    ```
+- demo
+    ```
+    $ ./test test.txt test.bak
+    $ cat test.bak
+    Linux System Programming
+    ```
 ### 4.3.4 문자열 기반 입출력
+#### 문자열 기반 입력: gets(3), fgets(3)
+```C
+#include<stdio.h>
+char* gets(const char* s);
+char* fgets(char* s, int size, FILE* stream);
+```
+- gets(3): 표준 입력 - 개행 문자 저장하지 않음
+- fgets(3): size보다 하나 적게 또는 개행 문자/EOF 전까지 문자열 저장 - 개행 문자 저장함
+- 성공시: 문자열 주소 리턴
+- 실패시: NULL리턴
+#### 문자열 기반 출력: puts(3), fputs(3)
+```C
+#include<stdio.h>
+int puts(const char* s);
+int fputs(const char* s, FILE* stream);
+```
+- puts(3): 표준 출력 - 개행 문자를 추가해 출력
+- fputs(3): 개행 문자 추가하지 않음
+#### 예제: 문자열 기반 입출력(fgets(3), fputs(3))
+- test.c
+    ```C
+    #include<stdio.h>
+
+    int main(int argc, char* argv[]){
+        char buf[BUFSIZ];
+        FILE* rfp = fopen(argv[1], "r");
+        FILE* wfp = fopen(argv[2], "a");
+        while(fgets(buf, BUFSIZ, rfp) != NULL){
+            fputs(buf, wfp);
+        }
+        fclose(rfp); fclose(wfp);
+    }
+    ```
+- demo
+    ```
+    $ ./test test.txt test.bak
+    $ cat test.bak
+    Linux System Programming
+    Linux System Programming
+    ```
 ### 4.3.5 버퍼 기반 입출력
+#### 버퍼 기반 입력: fread(3)
+```C
+#include<stdio.h>
+size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream);
+```
+- ptr: 버퍼 주소
+- size: 버퍼 크기
+- nmemb: 읽어올 항목 수 - fread(buf, sizeof(char)*2, 4, rfp)는 한 번에 문자열 8개를 읽음
+- stream: 파일 포인터
+- 성공시: 읽어온 항목 수 리턴
+- 읽을 항목이 없음: 0 리턴
+- EOF: EOF 리턴
+#### 예제: 버퍼 기반 파일 읽기(fread(3))
+- test.c
+    ```C
+    #include<stdio.h>
+
+    int main(int argc, char* argv[]){
+        char buf[BUFSIZ]; int n;
+        FILE* rfp = fopen(argv[1], "r");
+        while((n = fread(buf, sizeof(char), 4, rfp)) != 0){
+            printf("n: %d, buf: %s\n", n, buf);
+        }
+        fclose(rfp);
+    }
+    ```
+- demo
+    ```
+    $ ./test test.txt
+    n: 4, buf: Linu
+    n: 4, buf: x Sy
+    n: 4, buf: stem
+    n: 4, buf:  Pro
+    n: 4, buf: gram
+    n: 4, buf: ming
+    n: 1, buf: 
+    ing
+    ```
+#### 버퍼 기반 출력: fwrite(3)
+```C
+#include<stdio.h>
+size_t fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stream);
+```
+#### 예제: 버퍼 기반 입출력(fread(3), fwrite(3))
+- test.c
+    ```C
+    #include<stdio.h>
+
+    int main(int argc, char* argv[]){
+        char buf[BUFSIZ]; int n;
+        FILE* rfp = fopen(argv[1], "r");
+        FILE* wfp = fopen(argv[2], "w");
+        while((n = fread(buf, sizeof(char), 8, rfp)) > 0){
+            fwrite(buf, sizeof(char), 8, wfp);
+        }
+        fclose(rfp);
+        fclose(wfp);
+    }
+    ```
+- demo
+    ```
+    $ ./test test.txt test.bak
+    $ cat test.bak
+    Linux System Programming
+    ```
 ### 4.3.6 형식 기반 입출력
+#### 형식 기반 입력: scanf(3), fscanf(3)
+```C
+#include<stdio.h>
+int scanf(const char* format, ...);
+int fscanf(FILE* stream, const char* format, ...);
+```
+- 성공시: 읽은 항목 개수 리턴
+- 형식에 맞지 않는 입력: 0 리턴
+- 너무 빨리 EOF에 도달: 0 리턴
+- 형식 확인 전 EOF에 도달: EOF 리턴
+#### 예제: 성적 파일에서 평균 구하기(fscanf(3))
+- grade.dat
+    ```
+    ID      OS  DS  SP  ST  NW
+    21001  98  98  98  99  97
+    21002  95  90  94  93  99
+    ```
+    - 머리글 행은 예제에서 작성하지 않는다
+- test.c
+    ```C
+    #include<stdio.h>
+
+    int main(int argc, char* argv[]){
+        int n;
+        int id;
+        int os, ds, sp, st, nw; int avg;
+        FILE* rfp = fopen(argv[1], "r");
+
+        printf("ID\t\tAVG\n");
+        while((n = fscanf(rfp, "%d %d %d %d %d %d", &id, &os, &ds, &sp, &st, &nw)) != EOF){
+            avg = (os + ds + sp + st + nw) / 5;
+            printf("%d\t\t%d\n", id, avg);
+        }
+        fclose(rfp);
+    }
+    ```
+- demo
+    ```
+    $ ./test grade.dat
+    ID              AVG
+    21001           98
+    21002           94
+    ```
+#### 형식 기반 출력: printf(3), fprintf(3)
+```C
+#include<stdio.h>
+int printf(const char* format, ...);
+int fprintf(FILE* stream, const char* format, ...);
+```
+- 성공시: 출력한 문자 수 리턴
+- 오류시: EOF 리턴
+#### 예제: 성적 파일에서 평균 구하기(fscanf(3), fprintf(3))
+- test.c
+    ```C
+    #include<stdio.h>
+
+    int main(int argc, char* argv[]){
+        int n;
+        int id;
+        int os, ds, sp, st, nw; int avg;
+        FILE* rfp = fopen(argv[1], "r");
+        FILE* wfp = fopen(argv[2], "w");
+
+        fprintf(wfp, "ID\t\tAVG\n");
+        while((n = fscanf(rfp, "%d %d %d %d %d %d", &id, &os, &ds,&sp, &st, &nw)) != EOF){
+            avg = (os + ds + sp + st + nw) / 5;
+            fprintf(wfp, "%d\t\t%d\n", id, avg);
+        }
+        fclose(rfp);fclose(wfp);
+    }
+    ```
+- demo
+    ```
+    $ ./test grade.dat avg.dat
+    $ cat avg.dat
+    ID              AVG
+    21001           98
+    21002           94
+    ```
 ### 4.3.7 파일 오프셋 지정
+#### 파일 오프셋 이동: fseek(3)
+```C
+#include<stdio.h>
+int fseek(FILE* stream, long offset, int whence);
+```
+- offset: 이동할 바이트 수
+- whence: 오프셋 기준 위치
+- 성공시: 0 리턴(오프셋을 리턴하지 않음)
+- 실패시: EOF 리턴
+#### 주요 whence 값
+- lseek(2)와 동일
+- |값|기능|
+  |---|---|
+  |SEEK_SET|파일 시작 기준|
+  |SEEK_CUR|현재 위치 기준|
+  |SEEK_END|파일 끝 기준|
+#### 현재 오프셋 구하기: ftell(3)
+```C
+#include<stdio.h>
+long ftell(FILE* stream);
+```
+#### 파일 시작으로 이동: rewind(3)
+```C
+#include<stdio.h>
+void rewind(FILE* stream);
+```
+#### 예제: 파일 오프셋 이동(fseek(3), ftell(3), rewind(3))
+- test.c
+    ```C
+    #include<stdio.h>
+
+    int main(int argc, char* argv[]){
+        long offset;
+        char buf[BUFSIZ]; int n;
+        FILE* rfp = fopen(argv[1], "r");
+
+        offset = ftell(rfp); printf("current offset: %d\n", (int)offset);
+        fread(buf, sizeof(char), 5, rfp);
+        printf("buf: %s\n", buf);
+
+        fseek(rfp, 1, SEEK_CUR);  //공백 건너뛰도록 오프셋 이동
+        offset = ftell(rfp); printf("current offset: %d\n", (int)offset);
+        fread(buf, sizeof(char), 6, rfp);
+        printf("buf: %s\n", buf);
+
+        fseek(rfp, 1, SEEK_CUR);
+        offset = ftell(rfp); printf("current offset: %d\n", (int)offset);
+        fread(buf, sizeof(char), 11, rfp);
+        printf("buf: %s\n", buf);
+
+        //rewind
+        rewind(rfp); offset = ftell(rfp);
+        printf("rewind offset: %d\n", (int)offset);
+
+        fclose(rfp);
+    }
+    ```
+- demo
+    ```
+    $ ./test test.txt
+    current offset: 0
+    buf: Linux
+    current offset: 6
+    buf: System
+    current offset: 13
+    buf: Programming
+    rewind offset: 0
+    ```
 ### 4.3.8 파일과 디스크 동기화
+#### 디스크 동기화: fflush(3)
+```C
+#include<stdio.h>
+int fflush(FILE* stream);
+```
+- 버퍼에 있는 데이터를 파일에 기록
 
 ## 4.4 파일 기술자와 파일 포인터 변환
 
