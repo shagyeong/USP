@@ -1,5 +1,99 @@
 # 4장 파일 입출력
 ## 4.1 개요
+### 4.1.1 개요
+#### 파일
+- 파일: 데이터 집합
+- 일반 파일: 텍스트/바이너리 형태 자료 저장
+- 특수 파일: 데이터 전송/장치 접근
+### 4.1.2 파일 입출력
+#### 저수준 파일 입출력
+- 저수준 파일 입출력: 시스템 호출로 파일 입출력 수행
+- 파일 지시자: 파일 기술자(int)
+- 고수준 파일 입출력에 비해 빠름
+- 바이트 단위 입출력
+- 특수 파일 접근가능
+#### 저수준 파일 입출력 함수
+```C
+//파일 열고 닫기
+int open(const char* pathname, int flags);
+int open(const char* pathname, int flags, mode_t mode);
+int creat(const char* pathname, mode_t mode);
+int close(int fd);
+//입출력
+ssize_t read(int fd, void* buf, size_t count);
+ssize_t write(int fd, const void* buf, size_t count);
+//오프셋 조작
+off_t lseek(int fd, off_t offset, int whence);
+//fd 복사
+int dup(int oldfd);
+int dup2(int oldfd, int newfd);
+//fd 조작
+int fcntl(int fd, int cmd, /* arg */);
+//파일 삭제
+int remove(const char* pathname);
+//디스크와 동기화
+int fsync(int fd);
+```
+#### 고수준 파일 입출력
+- 고수준 파일 입출력: C 표준 함수로 파일 입출력 수행
+- 파일 지시자: 파일 포인터(FILE*)
+- 사용하기 쉬움
+- 버퍼 단위 입출력
+- 데이터 입출력 동기화 쉬움
+- 형식 기반 입출력 제공
+#### 고수준 파일 입출력 함수
+```C
+//파일 열고 닫기
+FILE* fopen(const char* pathname, const char* mode);
+int fclose(FILE* stream);
+//character 기반 입출력
+int fgetc(FILE* stream);
+int getc(FILE* stream);
+int getchar(void);
+int getw(FILE* stream);
+int fputc(int c, FILE* stream);
+int putc(int c, FILE* stream);
+int putchar(int c);
+int putw(int w, FILE* stream);
+//string 기반 입출력
+char* gets(const char* s);
+char* fgets(char* s, int size, FILE* stream);
+int puts(const char* s);
+int fputs(const char* s, FILE* stream);
+//버퍼 기반 입출력
+size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream);
+size_t fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stream);
+//format 기반 입출력
+int scanf(const char* format, ...);
+int fscanf(FILE* stream, const char* format, ...);
+int printf(const char* format, ...);
+int fprintf(FILE* stream, const char* format, ...);
+//오프셋 조작
+int fseek(FILE* stream, long offset, int whence);
+long ftell(FILE* stream);
+void rewind(FILE* stream);
+//디스크 동기화
+int fflush(FILE* stream);
+```
+### 4.1.3 파일 지시자 전환
+#### 파일 지시자 전환 함수
+```C
+//파일 포인터 생성(fd → fp)
+FILE* fdopen(nit fd, const char* mode);
+//파일 기술자 추출(fp → fd)
+int fileno(FILE* stream);
+```
+### 4.1.4 임시 파일
+#### 임시 파일명 함수
+```C
+char* tmpnam(char* s);
+char* mktemp(char* template);
+```
+#### 임시 파일 지시자 함수
+```C
+FILE* tmpfile();
+int mkstemp(char* template);
+```
 
 ## 4.2 저수준 파일 입출력
 ### 4.2.1 fd
@@ -747,12 +841,75 @@ int fflush(FILE* stream);
 #include<stdio.h>
 FILE* fdopen(nit fd, const char* mode);
 ```
+#### 열기 모드
+- fopen(3)의 열기 모드와 동일(4.3.2)
+- open(2)의 플래그에 대응되는 모드를 지정해야 함
+- 성공시: 파일 포인터 리턴
+- 실패시: 널 포인터 리턴
+#### 예제: 파일 포인터 생성(fdopen(3))
+- test.c
+    ```C
+    #include<sys/types.h>
+    #include<sys/stat.h>
+    #include<fcntl.h>
+    #include<unistd.h>
+    #include<stdio.h>
+
+    int main(int argc, char* argv[]){
+        int rfd;    int rflags = O_RDONLY;
+        FILE* rfp;  char rmode[1] = "r";
+        int c;
+
+        rfd = open(argv[1], rflags);
+        rfp = fdopen(rfd, rmode);
+
+        while((c = fgetc(rfp)) != EOF){
+            fputc(c, stdout);
+        }
+        close(rfd);
+        fclose(rfp);
+    }
+    ```
+- demo
+    ```
+    $ ./test test.txt
+    Linux System Programming
+    ```
 ### 4.4.2 파일 기술자 추출
 #### 파일 기술자 추출: fileno(3)
 ```C
 #include<stdio.h>
 int fileno(FILE* stream);
 ```
+#### 예제: 파일 기술자 추출(fileno(3))
+- test.c
+    ```C
+    #include<sys/types.h>
+    #include<sys/stat.h>
+    #include<fcntl.h>
+    #include<unistd.h>
+    #include<stdio.h>
+
+    int main(int argc, char* argv[]){
+        char buf[10]; int n;
+        int rfd;
+        FILE* rfp;
+
+        rfp = fopen(argv[1], "r");
+        rfd = fileno(rfp);
+
+        while((n = read(rfd, buf, 5)) > 0){
+            write(STDOUT_FILENO, buf, 5);
+        }
+        close(rfd);
+        fclose(rfp);
+    }
+    ```
+- demo
+    ```
+    $ ./test test.txt
+    Linux System Programming
+    ```
 
 ## 4.5 임시 파일 사용
 ### 4.5.1 임시 파일명 생성
@@ -761,12 +918,48 @@ int fileno(FILE* stream);
 #include<stdio.h>
 char* tmpnam(char* s);
 ```
+- s: 파일명을 저장 버퍼 시작 주소
+- 인자를 지정하지 않은 경우: 임시 파일명 리턴
 #### 탬플릿 지정 임시 파일명 생성: mktemp(3)
 ```C
 #include<stdlib.h>
 char* mktemp(char* template);
 ```
+- 지정 템플릿: 대문자 X 6개로 마쳐야 함
+- 시스템에서 다른 문자로 대체해 임시 파일명 생성
+#### 예제: 임시 파일명 생성(tmpnam(3), mktemp(3))
+- test.c
+    ```C
+    #include<stdio.h>
+    #include<stdlib.h>
+    #include<string.h>
+
+    int main(void){
+        char* fname;
+        char fntmp[BUFSIZ];
+        char template[32];
+
+        fname = tmpnam(NULL);
+        printf("tmp file name: %s\n", fname);
+        tmpnam(fname);
+        printf("tmp file name: %s\n", fname);
+        strcpy(template, "/tmp/testXXXXXX");
+        fname = mktemp(template);
+        printf("tmp file name: %s\n", fname);
+    }
+    ```
+- demo
+    ```
+    $ ./test
+    tmp file name: /tmp/fileH0DKW1
+    tmp file name: /tmp/fileL8RMWd
+    tmp file name: /tmp/testcQzy4v
+    ```
 ### 4.5.2 임시 파일에 대한 파일 지시자 생성
+#### 개요
+- 대부분의 경우 임시 파일명을 알 필요는 없음
+- tmpfile(3): 임시 파일명 없이 fp만 사용
+- mkstemp(3): 임시 파일명 없이 fd만 사용
 #### 임시 파일에 대한 파일 지시자 생성
 ```C
 //fp 생성
@@ -776,3 +969,27 @@ FILE* tmpfile()
 #include<stdlib.h>
 int mkstemp(char* template);
 ```
+#### 예제: 임시 파일에 대한 파일 지시자 생성(tmpfile(3), mkstemp(3))
+- test.c
+    ```C
+    #include<stdlib.h>
+    #include<stdio.h>
+    #include<unistd.h>
+    
+    int main(void){
+        char template[32] = "/tmp/testXXXXXX";
+        int tfd = mkstemp(template);
+        FILE* tfp = tmpfile();
+    
+        char buf[10] = "hello"; write(tfd, buf, 10);
+        fprintf(tfp, "hello");
+    
+        close(tfd);
+        fclose(tfp);
+    }
+    ```
+- demo
+    ```
+    $ cat /tmp/test*
+    hello
+    ```
