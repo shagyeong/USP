@@ -31,8 +31,22 @@ void* mremap(void* old_address, size_t old_size, size_t new_size, int flags);//�
 int msync(vod8 addr, size_t length, int flags);//매핑된 메모리 동기화
 ```
 
-
 ## 9.2 메모리 매핑과 해제
+### 9.2.0 개요
+#### 메모리 매핑
+- 메모리 매핑: 파일을 프로세의 메모리에 매핑
+- 프로세스에 전달할 데이터를 직접 프로세스의 가상 주소 공간으로 매핑
+- read(2), write(2)를 사용하지 않고 파일에서 데이터를 읽고 쓸 수 있다
+### 9.2.1 메모리 매핑
+#### 메모리 매핑: mmap(2)
+```C
+#include<sys/mman.h>
+void* mmap(void* addr, size_t length, int prot, int flags, int fd, off_t offset);
+```
+### 9.2.2 메모리 해제
+#### 
+### 9.2.3 보호 모드 변경
+#### 
 
 ## 9.3 파일 확장과 메모리 매핑
 
