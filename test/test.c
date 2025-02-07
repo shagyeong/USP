@@ -1,8 +1,12 @@
 #include<unistd.h>
-#include<stdio.h>
+#include "myclock.h"
 
-int main(void){
-    printf("_PC_LINK_MAX: %ld\n", pathconf(".", _PC_LINK_MAX));
-    printf("_PC_NAME_MAX: %ld\n", pathconf(".", _PC_NAME_MAX));
-    printf("_PC_PATH_MAX: %ld\n", pathconf(".", _PC_PATH_MAX));
+int main(int argc, char* argv[]){
+    char hbuf[2]; gethour(hbuf);
+    char mbuf[2]; getminute(mbuf);
+    char sbuf[2]; getsec(sbuf);
+
+    write(STDOUT_FILENO, hbuf, 2); write(STDOUT_FILENO, ":", 1);
+    write(STDOUT_FILENO, mbuf, 2); write(STDOUT_FILENO, ":", 1);
+    write(STDOUT_FILENO, sbuf, 2); write(STDOUT_FILENO, "\n", 1);
 }
